@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-29T02:00:24Z",
+  "unit": "AM-05.02",
+  "status": "partial implementation; expanded source CI accepted; final documentation head requires current-head CI and normal merge",
+  "sourceSha256": {
+    "src/evidence-links.ts": "2c14abf52ac835e40498079b61e296e346f16ee6db1a81e4f246e96c0f692400",
+    "tests/evidence-links.test.ts": "c91bacd8c1d7769bfca1f3cd821ac8591c791d31c566be56ae6d6d7baa5e380d",
+    "src/index.ts": "45cc6fe22c7910abeb66520cda986d68f832f112514ba927e2cf7564d29fbd11",
+    "src/contracts.ts": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5",
+    "package.json": "787ca0994722c95709ccdef9f020568cfd979b998980526949bfde51cda79f94",
+    "package-lock.json": "d42fc2b0b7e3b81083d96b0c6876a157681de122f70da7897cb6d91786859bb1",
+    "scripts/validate-pr-registry.mjs": "dc8811bd46886a942f0894fd016d4eac8709f3f19519383c13e38798983f3ab4"
+  },
+  "evidenceDomainPin": "c9aafd0cc7d655e4dc3f8b5b8b833ef102d4cf2b",
+  "local": {
+    "tests": 23,
+    "newEvidenceLinkGroups": 11,
+    "typecheck": "passed",
+    "build": "passed",
+    "registry": "passed",
+    "installedCompiledPublicExports": 23,
+    "compiledEvidenceLinksByteMatch": true
+  },
+  "initialCI": {
+    "source": "6fa03c72dd18e73e2b47999ba34ab7a9324d419c",
+    "run": 40803447014,
+    "job": 123216699192,
+    "conclusion": "success",
+    "tests": 20,
+    "logsInspected": true
+  },
+  "review": "Exact profiles/scope/roles/current claim+link references; actual pinned Evidence validators/fingerprints/families/analysis; history and budget controls; no implicit promotion/effect. No unresolved finding.",
+  "limitations": [
+    "Caller snapshots and Context are trusted host input, not current authentication or a permit.",
+    "Representation/source hash is not an original-byte read, media accuracy, truth or deployment qualification.",
+    "No SQL/durable audit/atomicity/network/host/Identity/consent/rights/UI/browser/AT/live acceptance.",
+    "Independence assessment is human-authored snapshot metadata, not independent verification of the assertion.",
+    "All histories private; no sends/publication/payments; PAM stays foundation only."
+  ],
+  "expandedCI": {
+    "source": "01dcb46daa2561fe252e3e8cc0a120689cdf1a2e",
+    "run": 40803800264,
+    "job": 123217829394,
+    "tests": 23,
+    "conclusion": "success",
+    "logsInspected": true
+  }
+}
