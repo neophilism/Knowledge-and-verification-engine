@@ -236,3 +236,33 @@ test("512 record and aggregate UTF8 limits preserve history, malformed lineage/p
     assert.throws(() => m.assertEntityIdentityState(bad));
   }
 });
+
+test("unsafe revision requests, caller mutation and cross-scope snapshots do not change prior decisions", () => {
+  const x = setup();
+  for (const expectedRevision of [-1, 0.5, Number.MAX_SAFE_INTEGER, NaN])
+    assert.throws(
+      () =>
+        m.recordEntityIdentity(c, x.knowledge, x.state, {
+          ...x.q,
+          expectedRevision,
+        }),
+      { code: "invalid_revision" },
+    );
+  const input = structuredClone(x.q),
+    s = m.recordEntityIdentity(c, x.knowledge, x.state, input);
+  Object.assign(input.left, { id: "mutated" });
+  Object.assign(input, { rationale: "Changed" });
+  assert.equal(s.records[0]!.left.id, "a");
+  assert.equal(s.records[0]!.rationale, x.q.rationale);
+  const foreign = k.createKnowledgeState({ ...c, projectId: "other" });
+  assert.throws(() => m.inspectEntityIdentities(c, foreign, s), {
+    code: "scope_denied",
+  });
+  assert.throws(() =>
+    m.recordEntityIdentity(c, x.knowledge, s, {
+      ...x.q,
+      expectedRevision: 1,
+      rationale: "",
+    }),
+  );
+});
