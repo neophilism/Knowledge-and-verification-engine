@@ -42,5 +42,9 @@ assert(
   ),
 );
 console.log(
-  "Evidence domain SDK pinned; persistence remains separate and unimplemented",
+  "Evidence domain SDK pinned; persistence uses a separate stable pin",
 );
+const persistencePin = "dce7105a70b42d77afe4cd48d34723331447037c";
+assert.equal(pkg.dependencies["@accountability/evidence-sql"], "git+https://github.com/neophilism/Evidence-Storage-and-Provenance-Engine.git#"+persistencePin);
+assert(lock.packages["node_modules/@accountability/evidence-sql"].resolved.endsWith("#"+persistencePin));
+console.log("Separate stable persistence SDK pinned for Knowledge owning DB");

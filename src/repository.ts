@@ -1,0 +1,149 @@
+import { scoped } from "@accountability/evidence-sql/database";
+import type {
+  Database,
+  UnitOfWork,
+} from "@accountability/evidence-sql/database";
+import {
+  canonical,
+  digest,
+  invariant,
+  nonempty,
+  requireScope,
+} from "./contracts.ts";
+import type { Context, Json, Ref, Scope } from "./contracts.ts";
+import {
+  createKnowledgeState,
+  inspectKnowledge,
+  reviseKnowledge,
+} from "./index.ts";
+import type { KnowledgeState, KnowledgeValue } from "./index.ts";
+export const KNOWLEDGE_KIND = "knowledge-history";
+export const KNOWLEDGE_KEY = digest({ aggregate: KNOWLEDGE_KIND });
+export type KnowledgeAppend = Readonly<{
+  id: string;
+  expectedRevision: number;
+  value: KnowledgeValue;
+}>;
+export type KnowledgeSnapshot = Readonly<{
+  revision: number;
+  state: KnowledgeState;
+}>;
+export type KnowledgeAcknowledgement = Readonly<{ storage: Ref; record: Ref }>;
+const json = (v: unknown): Json => JSON.parse(canonical(v));
+/** Host-authenticated human research facade over its OWN operational database. */
+export class KnowledgeRepository {
+  readonly #db: Database;
+  readonly #policy: Scope &
+    Readonly<{ humanIds: readonly string[]; purpose: string }>;
+  constructor(
+    db: Database,
+    policy: Scope & Readonly<{ humanIds: readonly string[]; purpose: string }>,
+  ) {
+    this.#db = db;
+    this.#policy = structuredClone(policy);
+    nonempty(this.#policy.tenantId, "Tenant", 128);
+    nonempty(this.#policy.projectId, "Project", 128);
+    nonempty(this.#policy.purpose, "Purpose", 200);
+    invariant(
+      Array.isArray(this.#policy.humanIds) &&
+        this.#policy.humanIds.length > 0 &&
+        this.#policy.humanIds.length <= 128 &&
+        new Set(this.#policy.humanIds).size === this.#policy.humanIds.length,
+      "invalid_policy",
+      "Bounded distinct humans required",
+    );
+    for (const id of this.#policy.humanIds) nonempty(id, "Human", 128);
+  }
+  #context(context: Context) {
+    const c = structuredClone(context);
+    requireScope(this.#policy, c);
+    inspectKnowledge(c, createKnowledgeState(c));
+    invariant(
+      c.actor.kind === "human" &&
+        this.#policy.humanIds.includes(c.actor.id) &&
+        c.purpose === this.#policy.purpose,
+      "forbidden",
+      "Listed human research authority and fixed purpose required",
+    );
+    return c;
+  }
+  async #load(tx: UnitOfWork, c: Context): Promise<KnowledgeSnapshot> {
+    const stored = await tx.get<KnowledgeState>(KNOWLEDGE_KIND, KNOWLEDGE_KEY);
+    if (!stored) return { revision: 0, state: createKnowledgeState(c) };
+    requireScope(c, stored.value);
+    inspectKnowledge(c, stored.value);
+    invariant(
+      stored.revision === stored.value.records.length,
+      "invalid_knowledge",
+      "Storage and history sequence mismatch",
+    );
+    return { revision: stored.revision, state: stored.value };
+  }
+  async load(context: Context): Promise<KnowledgeSnapshot> {
+    const c = this.#context(context);
+    return scoped(this.#db, c, async (tx) => {
+      await tx.audit("knowledge.read_checked", {});
+      return structuredClone(await this.#load(tx, c));
+    });
+  }
+  async append(
+    context: Context,
+    expectedStorageRevision: number,
+    command: KnowledgeAppend,
+    commandId: string,
+  ): Promise<KnowledgeAcknowledgement> {
+    const c = this.#context(context),
+      q = structuredClone(command);
+    nonempty(commandId, "Command", 128);
+    invariant(
+      Number.isSafeInteger(expectedStorageRevision) &&
+        expectedStorageRevision >= 0,
+      "invalid_revision",
+      "Expected storage revision required",
+    );
+    return scoped(this.#db, c, async (tx) => {
+      // Acquire the owning project lock BEFORE loading current state or cached acknowledgement.
+      await tx.audit("knowledge.append_checked", {
+        actorKind: c.actor.kind,
+        purpose: c.purpose,
+      });
+      const current = await this.#load(tx, c);
+      return (await tx.idempotent(
+        commandId,
+        json({
+          actorKind: c.actor.kind,
+          purpose: c.purpose,
+          expectedStorageRevision,
+          command: q,
+        }),
+        async () => {
+          invariant(
+            current.revision === expectedStorageRevision,
+            "revision_conflict",
+            "Knowledge storage edition changed",
+          );
+          const state = reviseKnowledge(c, current.state, q);
+          const stored = await tx.put(
+            KNOWLEDGE_KIND,
+            KNOWLEDGE_KEY,
+            current.revision,
+            state,
+          );
+          const result = {
+            storage: {
+              tenantId: c.tenantId,
+              projectId: c.projectId,
+              kind: KNOWLEDGE_KIND,
+              id: KNOWLEDGE_KEY,
+              revision: stored.revision,
+            },
+            record: state.records.at(-1)!.ref,
+          };
+          await tx.audit("knowledge.appended", json(result));
+          await tx.enqueue("knowledge.revised", json(result));
+          return json(result);
+        },
+      )) as KnowledgeAcknowledgement;
+    });
+  }
+}
