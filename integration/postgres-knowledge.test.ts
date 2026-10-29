@@ -420,3 +420,129 @@ test(
     );
   },
 );
+
+for (const mode of ["pairs", "links"] as const)
+  test(
+    `${mode} history contenders and lost winning COMMIT acknowledgement preserve one edition`,
+    { timeout: 20000 },
+    async (t) => {
+      const f = await fixture(t, "knowledge-history-" + mode),
+        evidence = createEvidenceState(f.context);
+      const left = (
+        await f.sa.append(
+          f.context,
+          0,
+          mode === "pairs" ? entity : claim,
+          "basis",
+        )
+      ).record;
+      const right =
+        mode === "pairs"
+          ? (
+              await f.sa.append(
+                f.context,
+                1,
+                { ...entity, id: "right" },
+                "right",
+              )
+            ).record
+          : left;
+      const pair = {
+          left,
+          right,
+          expectedRevision: 0,
+          decision: "unresolved" as const,
+          rationale: "Fictional unresolved judgment",
+        },
+        links = { claim: left, expectedRevision: 0, links: [] };
+      const write = (repo: KnowledgeRepository, id: string) =>
+        mode === "pairs"
+          ? repo.recordEntityIdentity(f.context, 0, pair, id)
+          : repo.recordEvidenceLinks(f.context, 0, evidence, links, id);
+      const locked = gate(),
+        release = gate(),
+        holding = held(f.a, locked, release);
+      const losingAck: Database = {
+        close: async () => {},
+        transaction: async (fn) => {
+          await holding.transaction(fn);
+          throw Error("fixture lost history COMMIT acknowledgement");
+        },
+      };
+      const winning = write(
+          new KnowledgeRepository(losingAck, f.policy),
+          "winner",
+        ),
+        result = winning.then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+      let pending: Promise<unknown> | undefined;
+      try {
+        await Promise.race([locked.promise, winning]);
+        pending = write(f.sb, "contender");
+        const contender = pending.then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+        await observedWait(f.id);
+        release.resolve();
+        const won = await result;
+        assert.ok("error" in won);
+        assert.match(String(won.error), /lost history COMMIT/);
+        const lost = await contender;
+        assert.ok("error" in lost);
+        assert.equal(
+          (lost.error as { code: string }).code,
+          "revision_conflict",
+        );
+        await f.b.close();
+        const fresh = f.connect("fresh"),
+          repo = new KnowledgeRepository(fresh, f.policy),
+          ack = await write(repo, "winner");
+        assert.equal(ack.storage.revision, 1);
+        const snapshot =
+          mode === "pairs"
+            ? await repo.loadEntityIdentities(f.context)
+            : await repo.loadEvidenceLinks(f.context);
+        assert.equal(snapshot.revision, 1);
+        assert.equal(snapshot.state.records.length, 1);
+        assert.equal(snapshot.knowledgeRevision, mode === "pairs" ? 2 : 1);
+        await scoped(fresh, f.context, async (tx) => {
+          const audits = await tx.audits();
+          assert.ok(verifyAudit(audits));
+          assert.equal(
+            audits.filter(
+              (a) =>
+                a.type ===
+                (mode === "pairs"
+                  ? "knowledge.entity-identity.recorded"
+                  : "knowledge.evidence-links.recorded"),
+            ).length,
+            1,
+          );
+          const topics: string[] = [];
+          for (;;) {
+            const e = await tx.claim("fixture");
+            if (!e) break;
+            topics.push(e.topic);
+            await tx.acknowledge(e);
+          }
+          assert.equal(
+            topics.filter(
+              (s) =>
+                s ===
+                (mode === "pairs"
+                  ? "knowledge.entity-identity.revised"
+                  : "knowledge.evidence-links.revised"),
+            ).length,
+            1,
+          );
+        });
+      } finally {
+        release.resolve();
+        await result;
+        await pending?.catch(() => {});
+      }
+    },
+  );
