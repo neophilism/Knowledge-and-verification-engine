@@ -210,7 +210,8 @@
       "origin": "original",
       "prs": [],
       "contributingPrs": [
-        1
+        1,
+        3
       ],
       "dependsOn": [
         "AM-02.03",
@@ -230,7 +231,7 @@
         "Unknown dates remain unknown and entity match ambiguity is reviewable and reversible.",
         "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
       ],
-      "implementationStatus": "Partial PR1 pure bounded private entity/event/unassessed-claim revisions, explicit unknown UTC intervals, exact current subject/predecessor links, independent null assessment/procedural/editorial tracks and detached host-role/scope inspection. Twelve local tests/typecheck/build/registry pass after clean normal install, including actual2048 cap/2MiB UTF8 boundary. Initial source03c4de56ebecd73af68074a3f3d6a4e9ee1483ed CI40797317206/job123196826801 failed npm ci due symlink-generated workspace-path lock; regenerated clean lock, tests not run in that initial CI. All twelve groups also pass installed compiled public exports/index JS byte-match. Final-head CI/reviewed merge pending. Full approved15-engine/122-task JSON retained byte-for-byte; no private deployment policy. No qualified selectors/source families/evidence truth/assessment/entity resolution/correction impact/SQL storage/auth/consent/UI/live acceptance. Dependencies/visual acceptance remain integration prerequisites; not a completed AM-05.01. Expanded source5594de30fe5a1b1029243256398b596231a1efa9 CI40797547980/check123197575447 clean npm ci/12tests/typecheck/build/registry SUCCESS, logs inspected. Final-head acceptance remains required."
+      "implementationStatus": "Partial PR1 pure bounded private entity/event/unassessed-claim revisions, explicit unknown UTC intervals, exact current subject/predecessor links, independent null assessment/procedural/editorial tracks and detached host-role/scope inspection. Twelve local tests/typecheck/build/registry pass after clean normal install, including actual2048 cap/2MiB UTF8 boundary. Initial source03c4de56ebecd73af68074a3f3d6a4e9ee1483ed CI40797317206/job123196826801 failed npm ci due symlink-generated workspace-path lock; regenerated clean lock, tests not run in that initial CI. All twelve groups also pass installed compiled public exports/index JS byte-match. Final-head CI/reviewed merge pending. Full approved15-engine/122-task JSON retained byte-for-byte; no private deployment policy. No qualified selectors/source families/evidence truth/assessment/entity resolution/correction impact/SQL storage/auth/consent/UI/live acceptance. Dependencies/visual acceptance remain integration prerequisites; not a completed AM-05.01. Expanded source5594de30fe5a1b1029243256398b596231a1efa9 CI40797547980/check123197575447 clean npm ci/12tests/typecheck/build/registry SUCCESS, logs inspected. Final-head acceptance remains required. New partial explicit reversible human entity-pair decisions; current edition checks/history/needs-review on changed entities; source checkpoint final CI/installed review pending. No identity proof, inferred transitive merge, rewritten IDs or verified findings. PR3 31 local+installed tests/typecheck/build/registry; source review no unresolved issue; docs/entity-identity-verification.json. InitialCI40820664785 success30/logs inspected; final-head CI required."
     },
     {
       "id": "AM-05.02",

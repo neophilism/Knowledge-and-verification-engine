@@ -15,6 +15,10 @@
     "./evidence-links": {
       "types": "./dist/evidence-links.d.ts",
       "default": "./dist/evidence-links.js"
+    },
+    "./entity-identity": {
+      "types": "./dist/entity-identity.d.ts",
+      "default": "./dist/entity-identity.js"
     }
   },
   "engines": {

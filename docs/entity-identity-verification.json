@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "status": "partial; final-head CI/merge pending",
+  "localTests": 31,
+  "newIdentityGroups": 8,
+  "installedCompiledPublicExports": 31,
+  "entityIdentityJsByteMatchesBuild": true,
+  "typecheck": "passed",
+  "build": "passed",
+  "registry": "passed",
+  "sourceSha256": {
+    "src/entity-identity.ts": "6a6e2e4d8feba845ea3f84b6c718bc7eeb3d5dcad5fc32de2b5c417365a11d6b",
+    "tests/entity-identity.test.ts": "c6a29fa5b330be5a51e34fa2cc4841ad3989f95f62a90d7bb0dd6cfbc6dd13a4",
+    "src/contracts.ts": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5",
+    "package.json": "52c8bbcbed965f2b5a63992ea685e6b1d0c15e1bfa45efeb0291897137bf6de0"
+  },
+  "initialCI": {
+    "source": "1aad2b509b75032f843c9fa8951827278fed09d6",
+    "run": 40820664785,
+    "job": 123272130130,
+    "tests": 30,
+    "conclusion": "success",
+    "logsInspected": true
+  },
+  "review": "No unresolved finding. Exact profiles/scope/roles/human write admission; current entity refs; deterministic lexical pair ID independent of editions; expected revision/predecessor/no regression; detached historical/current-edition review; caps/private defaults; no merges/effects.",
+  "pending": [
+    "Real human/identity proofing; current Identity/consent/rights/action gates",
+    "Own-DB durable audit/idempotency",
+    "Automatic matching/conflict-resolution/correction impact",
+    "Authorized visual/browser/AT/live acceptance"
+  ]
+}
