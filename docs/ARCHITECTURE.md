@@ -19,3 +19,5 @@ The partial AM-05.02 adapter is documented in EVIDENCE_LINKS.md. It supplies exa
 Partial explicit reversible identity pair judgments are documented in ENTITY_IDENTITY.md; they do not merge IDs or authenticate real identities. Earlier identity-resolution pending notes describe the foundation checkpoint and still apply to automated/qualified matching and visual acceptance.
 
 Partial versioned role/relationship assertions are documented in RELATIONSHIPS.md. The earlier entity/event/claim-only foundation descriptions remain historical; the additive profile keeps independent null assessment tracks and exact immutable subject links. No cross-engine pin is silently advanced.
+
+Partial owning-database persistence of KnowledgeState is documented in REPOSITORY.md. Pure library notes above remain historical; EvidenceLinks/entity-identity persistence and current Identity integration are still pending.

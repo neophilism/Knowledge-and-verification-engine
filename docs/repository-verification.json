@@ -1,0 +1,35 @@
+{
+  "status": "partial; final-head CI required",
+  "localTests": 46,
+  "installedTests": 46,
+  "newRestrictedMigrationGroups": 7,
+  "compiledRepositoryJsMatches": true,
+  "typecheck": "passed",
+  "build": "passed",
+  "registry": "passed",
+  "initialCI": {
+    "source": "89c00db839db7c2944f358278f38986def3fbb8f",
+    "run": 40838674355,
+    "job": 123329461115,
+    "tests": 44,
+    "conclusion": "success",
+    "headAndLogsInspected": true
+  },
+  "sourceSha256": {
+    "src/repository.ts": "22eadac587feee17117cd37ad6580dc82327c8db0c13da400ab5be6524ed2b87",
+    "tests/repository.test.ts": "bd740d63cca858c7dbad66a84e521435a1d3dc71fe44c0f3e240e03ffcaa47cf",
+    "package.json": "9bcc1af0b6dbc491af9b940ab350f80ef5ca3e22054b9d280e7b9017db445606",
+    "package-lock.json": "9ba353905255339b2c7efb60a737a6d170380e5f6651ce8d492890fce5ea096d"
+  },
+  "review": "No unresolved finding. Own-DB stable SDK separated from domain pin; lock before state/cache; supplied human research/list/scope/purpose before replay; capture/CAS/history/refs; atomic audit/outbox/ack; no effect API.",
+  "fixtureCorrections": [
+    "PGlite RESET SESSION AUTHORIZATION did not select administrator; explicit SET SESSION AUTHORIZATION postgres correctly exercises unsafe_database_role.",
+    "Installed test fixture needed its PGlite dev dependency; installed it and reran all46 through compiled public exports."
+  ],
+  "limits": [
+    "Context/current roles/policy remain trusted host inputs; no Identity authentication or distributed permission fence.",
+    "PGlite is not independent TCP contention, crash/failover or production qualification.",
+    "Only KnowledgeState persisted; separate EvidenceLinks/entity-identity history remains pending.",
+    "No HTTP/UI/browser/AT/provider/send/publication/payment; AM05.01 partial."
+  ]
+}

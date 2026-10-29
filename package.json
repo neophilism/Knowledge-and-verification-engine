@@ -19,6 +19,10 @@
     "./entity-identity": {
       "types": "./dist/entity-identity.d.ts",
       "default": "./dist/entity-identity.js"
+    },
+    "./repository": {
+      "types": "./dist/repository.d.ts",
+      "default": "./dist/repository.js"
     }
   },
   "engines": {
@@ -33,7 +37,8 @@
   },
   "devDependencies": {
     "@types/node": "26.6.5",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "@electric-sql/pglite": "0.5.12"
   },
   "files": [
     "dist",
@@ -41,6 +46,7 @@
     "docs"
   ],
   "dependencies": {
-    "@accountability/evidence": "git+https://github.com/neophilism/Evidence-Storage-and-Provenance-Engine.git#c9aafd0cc7d655e4dc3f8b5b8b833ef102d4cf2b"
+    "@accountability/evidence": "git+https://github.com/neophilism/Evidence-Storage-and-Provenance-Engine.git#c9aafd0cc7d655e4dc3f8b5b8b833ef102d4cf2b",
+    "@accountability/evidence-sql": "git+https://github.com/neophilism/Evidence-Storage-and-Provenance-Engine.git#dce7105a70b42d77afe4cd48d34723331447037c"
   }
 }
