@@ -3,7 +3,7 @@ import type { EvidenceLinksCommand } from "./evidence-links.ts";
 import type { EntityIdentityInput } from "./entity-identity.ts";
 import type { MembershipRegistry } from "@accountability/identity-policy/membership";
 import { digest, invariant, nonempty, requireScope } from "./contracts.ts";
-import type { Context, Scope } from "./contracts.ts";
+import type { Context, Scope, Ref } from "./contracts.ts";
 import type { KnowledgeRepository, KnowledgeAppend } from "./repository.ts";
 export const KNOWLEDGE_RESOURCE_ID = digest({
   kind: "knowledge-private-history-v1",
@@ -13,6 +13,7 @@ export class IdentityKnowledgeRepository {
   readonly #resolve: MembershipRegistry["resolveResource"];
   readonly #load: KnowledgeRepository["load"];
   readonly #links: KnowledgeRepository["loadEvidenceLinks"];
+  readonly #reviewLinks: KnowledgeRepository["reviewEvidenceLinks"];
   readonly #recordLinks: KnowledgeRepository["recordEvidenceLinks"];
   readonly #pairs: KnowledgeRepository["loadEntityIdentities"];
   readonly #recordPair: KnowledgeRepository["recordEntityIdentity"];
@@ -28,6 +29,7 @@ export class IdentityKnowledgeRepository {
     this.#resolve = membership.resolveResource.bind(membership);
     this.#load = repository.load.bind(repository);
     this.#links = repository.loadEvidenceLinks.bind(repository);
+    this.#reviewLinks = repository.reviewEvidenceLinks.bind(repository);
     this.#recordLinks = repository.recordEvidenceLinks.bind(repository);
     this.#pairs = repository.loadEntityIdentities.bind(repository);
     this.#recordPair = repository.recordEntityIdentity.bind(repository);
@@ -129,6 +131,20 @@ export class IdentityKnowledgeRepository {
   }
   async loadEvidenceLinks(context: Context, signal?: AbortSignal) {
     return this.#links(await this.#context(context, signal));
+  }
+  async reviewEvidenceLinks(
+    context: Context,
+    evidence: EvidenceState,
+    selected: Ref,
+    signal?: AbortSignal,
+  ) {
+    const source = structuredClone(evidence),
+      choice = structuredClone(selected);
+    return this.#reviewLinks(
+      await this.#context(context, signal),
+      source,
+      choice,
+    );
   }
   async recordEvidenceLinks(
     context: Context,

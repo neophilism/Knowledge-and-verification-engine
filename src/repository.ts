@@ -3,6 +3,7 @@ import {
   createEvidenceLinksState,
   assertEvidenceLinksState,
   reviseEvidenceLinks,
+  reviewEvidenceLinks as reviewLinks,
 } from "./evidence-links.ts";
 import type {
   EvidenceLinksState,
@@ -286,6 +287,33 @@ export class KnowledgeRepository {
       return structuredClone({
         ...links,
         knowledgeRevision: knowledge.revision,
+      });
+    });
+  }
+  /** Checked read over actual owning histories; supplied Evidence remains host-trusted. */
+  async reviewEvidenceLinks(
+    context: Context,
+    evidence: EvidenceState,
+    selected: Ref,
+  ) {
+    const c = this.#context(context),
+      source = structuredClone(evidence),
+      choice = structuredClone(selected);
+    return scoped(this.#db, c, async (tx) => {
+      await tx.audit("knowledge.evidence-links.review_checked", {});
+      const knowledge = await this.#load(tx, c),
+        links = await this.#links(tx, c);
+      const review = reviewLinks(
+        c,
+        knowledge.state,
+        source,
+        links.state,
+        choice,
+      );
+      return structuredClone({
+        knowledgeRevision: knowledge.revision,
+        linksRevision: links.revision,
+        review,
       });
     });
   }

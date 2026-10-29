@@ -1,0 +1,38 @@
+{
+  "scope": "Partial AM-05.02 checked owning evidence-link review",
+  "localTests": 68,
+  "installedTests": 68,
+  "newRestrictedMigrationGroups": 4,
+  "extendedDualIdentityKnowledgeGroup": true,
+  "compiledRepositoryFacadeByteMatch": true,
+  "typecheckBuildRegistry": "passed",
+  "initialCi": {
+    "source": "9af6a6cc4afad6e0e8039c70d7311dad247c0512",
+    "run": 40905981812,
+    "check": 123560729453,
+    "tests": 68,
+    "logsInspected": true
+  },
+  "review": [
+    "Lock checked audit before both actual own histories; domain review checks latest link/current claim and exact source dependencies",
+    "Captured inputs and detached observed storage revisions; no persisted decisions, domain changes, command cache or outbox",
+    "Actual Identity resource policy each facade call; sequential observation not distributed fence",
+    "Denied review checked audit rolls back; lost read COMMIT ACK unknown, not permit",
+    "Evidence remains HOST snapshot; no authenticated transport/original bytes/scanner/rights/consent/truth qualification"
+  ],
+  "limits": [
+    "No new SQL network/session/browser/AT/deployment/live acceptance",
+    "No provider/send/publication/payment/PAM; pins/contracts/schema unchanged",
+    "First installed harness lacked PGlite; explicit dependency setup then full68 passed",
+    "Current-head CI and actual rules required before expected-head merge"
+  ],
+  "sourceSha256": {
+    "src/repository.ts": "499aadc3ff639b8183dfdd826d29655cc61e4e228adf3b8fd8139299b0ad937c",
+    "src/identity-repository.ts": "7b5e179bf579bcc757feaaed17af0f03d8ecce238481aba558161dacc7da04ef",
+    "tests/repository.test.ts": "3d2cb6b94cfc64a53bfd554ce337b76f50c8b65c16adb32369e817cb05534959",
+    "tests/identity-repository.test.ts": "0de121c6df2244b187ca6416e5848bdac3d308776f44674ff977aae0f8ba90cd",
+    "docs/EVIDENCE_LINK_REVIEW.md": "36b65bd46bdf72eb0e8ccdfca6cff70810d504ec7b347fa9ebf3e1967ebf0751",
+    "docs/ARCHITECTURE.md": "86258568c3e2b42055906517a7bbb1caf5cf8c9a582d71873fab0edbb4434cf5",
+    "registry/prs.json": "260036fff56545c648ab2e057711bc94604291feeaa0769ec5254103547db54b"
+  }
+}
