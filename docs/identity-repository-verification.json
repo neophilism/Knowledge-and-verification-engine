@@ -1,0 +1,36 @@
+{
+  "status": "partial; final-head CI/merge required",
+  "localTests": 50,
+  "installedTests": 50,
+  "newSeparateRestrictedDatabaseGroups": 4,
+  "compiledIdentityRepositoryJsMatches": true,
+  "typecheck": "passed",
+  "build": "passed",
+  "registry": "passed",
+  "initialCI": {
+    "source": "4e2976f5a08f4e6f4c76bea23220bc9797b6905a",
+    "run": 40845799181,
+    "job": 123352846153,
+    "tests": 50,
+    "conclusion": "success",
+    "headAndLogsInspected": true
+  },
+  "sourceSha256": {
+    "src/identity-repository.ts": "60350499ca078a1a8656a37c5f9617c6e56cbad02f1ef50dba5b83d335e3324b",
+    "tests/identity-repository.test.ts": "7b7e0d4e0af11830cabae424335d3e2db06b82c40fc882a5a73b8e23fa0091b9",
+    "package.json": "fbb9fd8af6f73efed44cf20a830ef7a4c47e27a77a84b2a590f16f3c20f4c1c4",
+    "package-lock.json": "1c12950134092d87aee0f8058613c6f330f6185282cbb4d0663c130218b9f4bc"
+  },
+  "review": "No unresolved finding: actual pinned stored Identity membership/resource policy per invocation; caller roles stripped; fixed investigate/resource/scope/purpose; own Knowledge admission maintained; separate DBs both directions; monotonic Identity admission/result/copy budget; await SQL and deny late/lost/cancelled before Knowledge; capture/copies and historical replay.",
+  "localCorrections": [
+    "Initial npm prepare found readonly Context.actor assignment; use a detached principal with empty roles, before source checkpoint.",
+    "Initial parallel test invocation produced no full completion; sequential test concurrency bounds embedded database memory, all50 pass locally/installed/CI."
+  ],
+  "limits": [
+    "Host independently authenticates human kind/id and supplies trusted request/config/clock. No login/HTTP/credential/grant API.",
+    "Hosts must opt into this facade exclusively, never fallback on denial/unknown.",
+    "Identity and Knowledge observations sequential, not an atomic permission fence; consent/rights/Evidence still separate.",
+    "Identity SQL awaited and may outlive acceptance budget/cancel; Knowledge begun SQL obeys existing repository unknown-ack behavior.",
+    "No independent network contention/production/TLS/browser/AT/live qualification; link/pair persistence pending."
+  ]
+}
