@@ -56,3 +56,6 @@ assert(
   ),
 );
 console.log("Separate stable persistence SDK pinned for Knowledge owning DB");
+assert.equal(pkg.dependencies["@accountability/identity-policy"],"git+https://github.com/neophilism/Identity-Authorization-and-Policy-Engine.git#763060ddc840979b56483afd830f78679a2369b0");
+assert(lock.packages["node_modules/@accountability/identity-policy"].resolved.endsWith("#763060ddc840979b56483afd830f78679a2369b0"));
+console.log("Accepted Identity resource policy SDK pinned");
