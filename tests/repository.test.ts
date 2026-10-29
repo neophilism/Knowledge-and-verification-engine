@@ -179,3 +179,44 @@ test("storage CAS and actual domain reference checks deny stale or missing editi
   await f.repo.append(c, 1, valid, "good-ref");
   assert.equal((await f.repo.load(c)).revision, 2);
 });
+
+test("project isolation and privileged connection guard apply to the actual repository", async (t) => {
+  const f = await fixture(t);
+  await f.repo.append(c, 0, q, "first");
+  const other = { ...c, projectId: "other" },
+    repo = new KnowledgeRepository(f.db, {
+      ...f.policy,
+      projectId: other.projectId,
+    });
+  assert.equal((await repo.load(other)).revision, 0);
+  await repo.append(other, 0, { ...q, id: "other-entity" }, "first");
+  assert.equal((await f.repo.load(c)).state.records[0]!.ref.id, "entity");
+  assert.equal(
+    (await repo.load(other)).state.records[0]!.ref.id,
+    "other-entity",
+  );
+  await f.pg.exec("SET SESSION AUTHORIZATION postgres");
+  await assert.rejects(f.repo.load(c), { code: "unsafe_database_role" });
+});
+test("captured inputs/config and corrupted stored sequence cannot bypass replay validation", async (t) => {
+  const f = await fixture(t),
+    policy = structuredClone(f.policy),
+    repo = new KnowledgeRepository(f.db, policy),
+    input = structuredClone(q),
+    context = structuredClone(c);
+  const pending = repo.append(context, 0, input, "first");
+  Object.assign(input, { id: "mutated" });
+  Object.assign(context.actor, { id: "unknown" });
+  policy.humanIds.splice(0, 1, "unknown");
+  const ack = await pending;
+  assert.equal(ack.record.id, "entity");
+  const snapshot = await repo.load(c);
+  assert.equal(snapshot.revision, 1);
+  await scoped(f.db, c, async (tx) => {
+    await tx.put(ack.storage.kind, ack.storage.id, 1, snapshot.state);
+  });
+  await assert.rejects(repo.load(c), { code: "invalid_knowledge" });
+  await assert.rejects(repo.append(c, 0, q, "first"), {
+    code: "invalid_knowledge",
+  });
+});
