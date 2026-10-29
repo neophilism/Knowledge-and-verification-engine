@@ -30,7 +30,10 @@
     "testsRun": false,
     "reason": "symlink-generated workspace dependency paths; clean lock regenerated"
   },
-  "installed": "pending",
+  "installed": {
+    "tests": 12,
+    "compiledIndexJsByteMatchesBuild": true
+  },
   "finalHeadCi": "required",
   "limits": [
     "Pure memory library, not SQL/durable audit/crash/network proof",
@@ -38,5 +41,14 @@
     "No evidence selectors/family/assessment/authenticity/legal/editorial findings",
     "No UI/browser/AT/current Identity/source/consent/live qualification",
     "All records private; no provider calls/sends/publication/payments"
-  ]
+  ],
+  "expandedCi": {
+    "source": "5594de30fe5a1b1029243256398b596231a1efa9",
+    "run": 40797547980,
+    "job": 123197575447,
+    "conclusion": "success",
+    "tests": 12,
+    "cleanNpmCi": true,
+    "logsInspected": true
+  }
 }

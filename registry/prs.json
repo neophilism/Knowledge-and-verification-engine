@@ -4,7 +4,7 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 16,
-  "observedAt": "2026-10-29T00:58:33Z",
+  "observedAt": "2026-10-29T00:59:41Z",
   "units": [
     {
       "id": "AM-02.01",
@@ -230,7 +230,7 @@
         "Unknown dates remain unknown and entity match ambiguity is reviewable and reversible.",
         "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
       ],
-      "implementationStatus": "Partial PR1 pure bounded private entity/event/unassessed-claim revisions, explicit unknown UTC intervals, exact current subject/predecessor links, independent null assessment/procedural/editorial tracks and detached host-role/scope inspection. Twelve local tests/typecheck/build/registry pass after clean normal install, including actual2048 cap/2MiB UTF8 boundary. Initial source03c4de56ebecd73af68074a3f3d6a4e9ee1483ed CI40797317206/job123196826801 failed npm ci due symlink-generated workspace-path lock; regenerated clean lock, tests not run in that initial CI. Installed/current-head CI/reviewed merge pending. Full approved15-engine/122-task JSON retained byte-for-byte; no private deployment policy. No qualified selectors/source families/evidence truth/assessment/entity resolution/correction impact/SQL storage/auth/consent/UI/live acceptance. Dependencies/visual acceptance remain integration prerequisites; not a completed AM-05.01."
+      "implementationStatus": "Partial PR1 pure bounded private entity/event/unassessed-claim revisions, explicit unknown UTC intervals, exact current subject/predecessor links, independent null assessment/procedural/editorial tracks and detached host-role/scope inspection. Twelve local tests/typecheck/build/registry pass after clean normal install, including actual2048 cap/2MiB UTF8 boundary. Initial source03c4de56ebecd73af68074a3f3d6a4e9ee1483ed CI40797317206/job123196826801 failed npm ci due symlink-generated workspace-path lock; regenerated clean lock, tests not run in that initial CI. All twelve groups also pass installed compiled public exports/index JS byte-match. Final-head CI/reviewed merge pending. Full approved15-engine/122-task JSON retained byte-for-byte; no private deployment policy. No qualified selectors/source families/evidence truth/assessment/entity resolution/correction impact/SQL storage/auth/consent/UI/live acceptance. Dependencies/visual acceptance remain integration prerequisites; not a completed AM-05.01. Expanded source5594de30fe5a1b1029243256398b596231a1efa9 CI40797547980/check123197575447 clean npm ci/12tests/typecheck/build/registry SUCCESS, logs inspected. Final-head acceptance remains required."
     },
     {
       "id": "AM-05.02",
@@ -409,5 +409,6 @@
       "implementationStatus": "planned; not implemented in this foundation"
     }
   ],
-  "pullRequests": []
+  "pullRequests": [],
+  "scopeNote": "plannedPrCount counts the eight original joint E07/E08 requirement units, not accepted implementations or a guarantee of one PR per task. All122 original tasks and15 engines retained in approved design; E08 workflow work remains separately owned."
 }
