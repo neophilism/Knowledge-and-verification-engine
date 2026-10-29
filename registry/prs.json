@@ -4,7 +4,7 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 16,
-  "observedAt": "2026-10-29T00:59:41Z",
+  "observedAt": "2026-10-29T01:56:16Z",
   "units": [
     {
       "id": "AM-02.01",
@@ -252,7 +252,8 @@
         "Copied reports cannot inflate corroboration and unsupported links fail validation.",
         "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
       ],
-      "implementationStatus": "planned; not implemented in this foundation"
+      "implementationStatus": "partial: exact private claim-bound Evidence links and explicit snapshot revalidation; draft checkpoint, final review/CI pending",
+      "implementationEvidence": "New evidence-links subpath reuses pinned accepted Evidence selectors/families/fingerprints/source grouping; no inferred truth or external authority. Persistence/current authenticated snapshot transport/UI remain pending."
     },
     {
       "id": "AM-05.03",
@@ -410,5 +411,5 @@
     }
   ],
   "pullRequests": [],
-  "scopeNote": "plannedPrCount counts the eight original joint E07/E08 requirement units, not accepted implementations or a guarantee of one PR per task. All122 original tasks and15 engines retained in approved design; E08 workflow work remains separately owned."
+  "scopeNote": "plannedPrCount counts the 16 original tasks involving E07, including eight joint M05 requirements; not accepted implementations or a guarantee of one PR per task. All122 original tasks and15 engines retained in approved design; E08 workflow work remains separately owned."
 }
