@@ -26,6 +26,18 @@ export type KnowledgeValue =
       entityRefs: readonly Ref[];
     }>
   | Readonly<{
+      type: "relationship";
+      relationshipType: "role_assertion" | "association";
+      label: string;
+      from: Ref;
+      to: Ref;
+      time: TimeRange;
+      limitations: readonly string[];
+      assessment: null;
+      proceduralPosture: null;
+      editorialApproval: null;
+    }>
+  | Readonly<{
       type: "claim";
       text: string;
       subjectRefs: readonly Ref[];
@@ -69,10 +81,7 @@ const accounts = [
   "observation",
   "research_inference",
 ];
-function exact(
-  v: unknown,
-  keys: readonly string[],
-): void {
+function exact(v: unknown, keys: readonly string[]): void {
   invariant(
     v !== null &&
       typeof v === "object" &&
@@ -120,7 +129,7 @@ function reference(r: Ref, s: KnowledgeState) {
   validateRef(r);
   requireScope(s, r);
   invariant(
-    ["entity", "event", "claim"].includes(r.kind),
+    ["entity", "event", "claim", "relationship"].includes(r.kind),
     "invalid_reference",
     "Knowledge reference required",
   );
@@ -149,7 +158,7 @@ function refs(v: readonly Ref[], s: KnowledgeState, kinds: readonly string[]) {
 }
 function value(v: KnowledgeValue, s: KnowledgeState) {
   invariant(
-    v && ["entity", "event", "claim"].includes(v.type),
+    v && ["entity", "event", "claim", "relationship"].includes(v.type),
     "invalid_knowledge",
     "Known record type required",
   );
@@ -168,6 +177,46 @@ function value(v: KnowledgeValue, s: KnowledgeState) {
     nonempty(v.description, "Description", 8000);
     time(v.time);
     refs(v.entityRefs, s, ["entity"]);
+  } else if (v.type === "relationship") {
+    exact(v, [
+      "type",
+      "relationshipType",
+      "label",
+      "from",
+      "to",
+      "time",
+      "limitations",
+      "assessment",
+      "proceduralPosture",
+      "editorialApproval",
+    ]);
+    invariant(
+      ["role_assertion", "association"].includes(v.relationshipType),
+      "invalid_knowledge",
+      "Explicit relationship type required",
+    );
+    nonempty(v.label, "Relationship", 500);
+    refs([v.from], s, ["entity"]);
+    refs([v.to], s, ["entity", "event"]);
+    invariant(
+      !same(v.from, v.to),
+      "invalid_reference",
+      "Distinct relationship endpoints required",
+    );
+    time(v.time);
+    invariant(
+      Array.isArray(v.limitations) && v.limitations.length <= 64,
+      "invalid_knowledge",
+      "Bounded limitations required",
+    );
+    for (const l of v.limitations) nonempty(l, "Limitation", 2000);
+    invariant(
+      v.assessment === null &&
+        v.proceduralPosture === null &&
+        v.editorialApproval === null,
+      "unassessed_required",
+      "Independent assessment tracks remain unassessed",
+    );
   } else {
     exact(v, [
       "type",
@@ -181,7 +230,7 @@ function value(v: KnowledgeValue, s: KnowledgeState) {
       "editorialApproval",
     ]);
     nonempty(v.text, "Claim", 16000);
-    refs(v.subjectRefs, s, ["entity", "event"]);
+    refs(v.subjectRefs, s, ["entity", "event", "relationship"]);
     time(v.time);
     invariant(
       accounts.includes(v.accountType) &&
@@ -330,7 +379,9 @@ export function reviseKnowledge(
       ? command.value.entityRefs
       : command.value.type === "claim"
         ? command.value.subjectRefs
-        : [];
+        : command.value.type === "relationship"
+          ? [command.value.from, command.value.to]
+          : [];
   for (const ref of dependencies)
     invariant(
       !s.records.some(

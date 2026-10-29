@@ -17,3 +17,5 @@ All twelve neutral domain groups/typecheck/build/registry pass after a clean nor
 The partial AM-05.02 adapter is documented in EVIDENCE_LINKS.md. It supplies exact claim-bound private link histories and explicit pinned-Evidence snapshot revalidation, with separate support/challenge/quotation source analyses. It does not authenticate snapshots or promote claims to verified findings. Historical source/selector pending notes above describe the foundation checkpoint; the adapter advances those integrations only within its documented pure-memory limits.
 
 Partial explicit reversible identity pair judgments are documented in ENTITY_IDENTITY.md; they do not merge IDs or authenticate real identities. Earlier identity-resolution pending notes describe the foundation checkpoint and still apply to automated/qualified matching and visual acceptance.
+
+Partial versioned role/relationship assertions are documented in RELATIONSHIPS.md. The earlier entity/event/claim-only foundation descriptions remain historical; the additive profile keeps independent null assessment tracks and exact immutable subject links. No cross-engine pin is silently advanced.

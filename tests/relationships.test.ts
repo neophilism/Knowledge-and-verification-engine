@@ -1,0 +1,204 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import * as k from "../src/index.ts";
+import type { Context } from "../src/contracts.ts";
+const c: Context = {
+  tenantId: "fiction",
+  projectId: "review",
+  actor: { id: "researcher", kind: "human", roles: ["researcher"] },
+  purpose: "private-review",
+  requestId: "r",
+  now: "2026-01-01T00:00:00Z",
+};
+const entity: k.KnowledgeValue = {
+  type: "entity",
+  label: "Fictional person",
+  category: "person",
+  description: "Unresolved identity",
+};
+function setup() {
+  let state = k.createKnowledgeState(c);
+  state = k.reviseKnowledge(c, state, {
+    id: "person",
+    expectedRevision: 0,
+    value: entity,
+  });
+  state = k.reviseKnowledge(c, state, {
+    id: "event",
+    expectedRevision: 0,
+    value: {
+      type: "event",
+      label: "Fictional meeting",
+      description: "Unverified fixture",
+      entityRefs: [],
+      time: { earliest: null, latest: null },
+    },
+  });
+  const value: Extract<k.KnowledgeValue, { type: "relationship" }> = {
+    type: "relationship",
+    relationshipType: "role_assertion",
+    label: "Reported attendee",
+    from: state.records[0]!.ref,
+    to: state.records[1]!.ref,
+    time: { earliest: null, latest: null },
+    limitations: ["Attendance has not been independently verified"],
+    assessment: null,
+    proceduralPosture: null,
+    editorialApproval: null,
+  };
+  return { state, q: { id: "role", expectedRevision: 0, value } };
+}
+const append = (x: ReturnType<typeof setup>) =>
+  k.reviseKnowledge(c, x.state, x.q);
+test("private unassessed role assertion retains exact entity/event editions and unknown time", () => {
+  const x = setup(),
+    s = append(x),
+    r = s.records[2]!;
+  assert.equal(r.ref.kind, "relationship");
+  assert.equal(r.visibility, "private");
+  assert.deepEqual((r.value as typeof x.q.value).time, {
+    earliest: null,
+    latest: null,
+  });
+  assert.deepEqual((r.value as typeof x.q.value).from, x.state.records[0]!.ref);
+  assert.equal((r.value as typeof x.q.value).assessment, null);
+  assert.equal(x.state.records.length, 2);
+});
+test("relationship revisions preserve predecessor and prior role/association descriptions", () => {
+  const x = setup(),
+    s = append(x);
+  const next = k.reviseKnowledge(c, s, {
+    ...x.q,
+    expectedRevision: 1,
+    value: {
+      ...x.q.value,
+      relationshipType: "association",
+      label: "Unresolved contextual association",
+    },
+  });
+  assert.deepEqual(next.records[3]!.supersedes, s.records[2]!.ref);
+  assert.equal(
+    (s.records[2]!.value as typeof x.q.value).relationshipType,
+    "role_assertion",
+  );
+  assert.throws(
+    () => k.reviseKnowledge(c, next, { ...x.q, expectedRevision: 1 }),
+    { code: "revision_conflict" },
+  );
+});
+test("current endpoints required on new assertions while historical endpoints remain unchanged", () => {
+  const x = setup(),
+    s = append(x);
+  const changed = k.reviseKnowledge(c, s, {
+    id: "person",
+    expectedRevision: 1,
+    value: { ...entity, description: "Updated identity description" },
+  });
+  k.assertKnowledgeState(changed);
+  assert.throws(
+    () => k.reviseKnowledge(c, changed, { ...x.q, expectedRevision: 1 }),
+    { code: "stale_reference" },
+  );
+  const next = k.reviseKnowledge(c, changed, {
+    ...x.q,
+    expectedRevision: 1,
+    value: { ...x.q.value, from: changed.records[3]!.ref },
+  });
+  assert.equal((next.records[4]!.value as typeof x.q.value).from.revision, 2);
+  assert.equal((next.records[2]!.value as typeof x.q.value).from.revision, 1);
+});
+test("missing/foreign/wrong-kind/self endpoints and relation cycles cannot enter history", () => {
+  const x = setup(),
+    s = append(x);
+  for (const value of [
+    { ...x.q.value, from: { ...x.q.value.from, id: "absent" } },
+    { ...x.q.value, to: { ...x.q.value.to, projectId: "foreign" } },
+    { ...x.q.value, from: x.q.value.to },
+    { ...x.q.value, to: x.q.value.from },
+    { ...x.q.value, to: s.records[2]!.ref },
+  ])
+    assert.throws(() =>
+      k.reviseKnowledge(c, s, { ...x.q, expectedRevision: 1, value }),
+    );
+  assert.equal(s.records.length, 3);
+});
+test("claims bind relationship editions explicitly; a revised relationship needs deliberate new claim linkage", () => {
+  const x = setup(),
+    s = append(x);
+  const claim: Extract<k.KnowledgeValue, { type: "claim" }> = {
+    type: "claim",
+    text: "A fictional record attributes attendance.",
+    subjectRefs: [s.records[2]!.ref],
+    time: { earliest: null, latest: null },
+    accountType: "document_assertion",
+    limitations: ["Unverified attribution"],
+    assessment: null,
+    proceduralPosture: null,
+    editorialApproval: null,
+  };
+  const withClaim = k.reviseKnowledge(c, s, {
+    id: "attribution",
+    expectedRevision: 0,
+    value: claim,
+  });
+  const changed = k.reviseKnowledge(c, withClaim, {
+    ...x.q,
+    expectedRevision: 1,
+    value: { ...x.q.value, label: "Disputed role attribution" },
+  });
+  k.assertKnowledgeState(changed);
+  assert.throws(
+    () =>
+      k.reviseKnowledge(c, changed, {
+        id: "attribution",
+        expectedRevision: 1,
+        value: claim,
+      }),
+    { code: "stale_reference" },
+  );
+  const next = k.reviseKnowledge(c, changed, {
+    id: "attribution",
+    expectedRevision: 1,
+    value: { ...claim, subjectRefs: [changed.records[4]!.ref] },
+  });
+  assert.equal(
+    (next.records[5]!.value as typeof claim).subjectRefs[0]!.revision,
+    2,
+  );
+  assert.equal(
+    (next.records[3]!.value as typeof claim).subjectRefs[0]!.revision,
+    1,
+  );
+});
+test("injected assessment/legal/editorial tracks, malformed intervals/limits and unauthorized callers deny", () => {
+  const x = setup();
+  for (const patch of [
+    { assessment: "supported" },
+    { proceduralPosture: "liable" },
+    { editorialApproval: "approved" },
+    { relationshipType: "verified" },
+    { score: 1 },
+    { time: { earliest: "2026-02-30T00:00:00Z", latest: null } },
+    { label: "x".repeat(501) },
+    { limitations: ["x".repeat(2001)] },
+  ])
+    assert.throws(() =>
+      k.reviseKnowledge(c, x.state, {
+        ...x.q,
+        value: { ...x.q.value, ...patch } as typeof x.q.value,
+      }),
+    );
+  assert.throws(
+    () =>
+      k.reviseKnowledge(
+        { ...c, actor: { ...c.actor, roles: ["viewer"] } },
+        x.state,
+        x.q,
+      ),
+    { code: "forbidden" },
+  );
+  const s = append(x),
+    read = k.inspectKnowledge(c, s);
+  Object.assign(read[2]!.value, { label: "Detached" });
+  assert.notEqual((s.records[2]!.value as typeof x.q.value).label, "Detached");
+});
