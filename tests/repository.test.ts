@@ -1,3 +1,5 @@
+import * as evidenceDomain from "@accountability/evidence";
+import type { EvidenceLinksCommand } from "../src/evidence-links.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -350,7 +352,7 @@ test("pair input capture and shared command IDs cannot rewrite or impersonate a 
     input = structuredClone(f.input),
     pending = f.repo.recordEntityIdentity(c, 0, input, "pair");
   input.rationale = "Mutated caller text";
-  Object.assign(input.left,{id:"unknown"});
+  Object.assign(input.left, { id: "unknown" });
   await pending;
   assert.equal(
     (await f.repo.loadEntityIdentities(c)).state.records[0]!.rationale,
@@ -378,4 +380,214 @@ test("corrupt stored pair sequence denies reads and cached acknowledgement witho
     assert(old);
   });
   assert.equal((await f.repo.load(c)).revision, 2);
+});
+
+async function linkFixture(t: test.TestContext) {
+  const f = await fixture(t);
+  const claimCommand = {
+    id: "claim",
+    expectedRevision: 0,
+    value: {
+      type: "claim" as const,
+      text: "A fictional account reports a signal",
+      subjectRefs: [],
+      time: { earliest: null, latest: null },
+      accountType: "attributed_testimony" as const,
+      limitations: ["Unverified fixture"],
+      assessment: null,
+      proceduralPosture: null,
+      editorialApproval: null,
+    },
+  };
+  const claim = (await f.repo.append(c, 0, claimCommand, "claim")).record;
+  let evidence = evidenceDomain.acquireEvidence(
+    evidenceDomain.createEvidenceState(c),
+    c,
+    {
+      id: "source",
+      bytes: Buffer.from("A😀B fixture"),
+      acquisitionId: "acq",
+      storageVersionRef: "fixture-object",
+      mediaType: "text/plain",
+      sourceFamilyId: null,
+      capturedAt: c.now,
+      originalLanguage: "und",
+      allowedPurposes: [c.purpose],
+      supersedes: null,
+    },
+  );
+  const v = evidence.versions[0]!;
+  evidence = evidenceDomain.beginScan(evidence, c, {
+    id: "begin",
+    evidence: v.ref,
+    attemptId: "scan",
+    engineVersion: "synthetic-only",
+  });
+  evidence = evidenceDomain.completeScan(evidence, c, {
+    id: "end",
+    evidence: v.ref,
+    attemptId: "scan",
+    sha256: v.sha256,
+    status: "clean",
+    reason: "Synthetic fixture scanner, not production malware proof",
+  });
+  evidence = evidenceDomain.addRepresentation(evidence, c, {
+    id: "rep",
+    evidence: v.ref,
+    sourceSha256: v.sha256,
+    text: "A😀B fixture",
+    pages: ["A😀B fixture"],
+    durationMs: 1000,
+    toolVersion: "synthetic-parser",
+  });
+  const rep = evidence.representations[0]!;
+  const command: EvidenceLinksCommand = {
+    claim,
+    expectedRevision: 0,
+    links: [
+      {
+        id: "quote",
+        relation: "supports",
+        selector: {
+          kind: "text",
+          evidence: v.ref,
+          sha256: v.sha256,
+          representationId: rep.id,
+          representationDigest: rep.digest,
+          page: null,
+          start: 1,
+          end: 3,
+          quote: "😀",
+        },
+      },
+    ],
+  };
+  return { ...f, evidence, command, claimCommand };
+}
+test("durable exact selector links retain support and contrary history without changing claims", async (t) => {
+  const f = await linkFixture(t),
+    before = await f.repo.load(c);
+  const first = await f.repo.recordEvidenceLinks(
+    c,
+    0,
+    f.evidence,
+    f.command,
+    "links",
+  );
+  await f.repo.recordEvidenceLinks(
+    c,
+    1,
+    f.evidence,
+    {
+      ...f.command,
+      expectedRevision: 1,
+      links: [{ ...f.command.links[0]!, relation: "challenges" }],
+    },
+    "contrary",
+  );
+  const read = await new KnowledgeRepository(f.db, f.policy).loadEvidenceLinks(
+    c,
+  );
+  assert.equal(read.revision, 2);
+  assert.equal(read.knowledgeRevision, 1);
+  assert.equal(read.state.records[0]!.links[0]!.relation, "supports");
+  assert.equal(read.state.records[1]!.links[0]!.relation, "challenges");
+  assert.deepEqual(read.state.records[1]!.supersedes, first.record);
+  assert.deepEqual(await f.repo.load(c), before);
+  Object.assign(read.state.records[0]!.links[0]!, { id: "detached" });
+  assert.notDeepEqual(await f.repo.loadEvidenceLinks(c), read);
+});
+test("new link writes deny invented selectors foreign snapshots and stale owning claim editions", async (t) => {
+  const f = await linkFixture(t),
+    selector = f.command.links[0]!.selector;
+  for (const bad of [
+    { ...selector, quote: "invented" },
+    { ...selector, representationId: "missing" },
+  ])
+    await assert.rejects(
+      f.repo.recordEvidenceLinks(
+        c,
+        0,
+        f.evidence,
+        { ...f.command, links: [{ ...f.command.links[0]!, selector: bad }] },
+        "bad",
+      ),
+    );
+  await assert.rejects(
+    f.repo.recordEvidenceLinks(
+      c,
+      0,
+      { ...f.evidence, projectId: "foreign" },
+      f.command,
+      "foreign",
+    ),
+  );
+  assert.equal((await f.repo.loadEvidenceLinks(c)).revision, 0);
+  await f.repo.append(
+    c,
+    1,
+    { ...f.claimCommand, expectedRevision: 1 },
+    "revise-claim",
+  );
+  await assert.rejects(
+    f.repo.recordEvidenceLinks(c, 0, f.evidence, f.command, "stale"),
+    { code: "stale_claim" },
+  );
+});
+test("lost link acknowledgement replays historical refs without re-attesting supplied source snapshots", async (t) => {
+  const f = await linkFixture(t);
+  f.hooks.lost = true;
+  await assert.rejects(
+    f.repo.recordEvidenceLinks(c, 0, f.evidence, f.command, "links"),
+  );
+  const ack = await f.repo.recordEvidenceLinks(
+    c,
+    0,
+    f.evidence,
+    f.command,
+    "links",
+  );
+  assert.equal(ack.storage.revision, 1);
+  await f.repo.append(
+    c,
+    1,
+    { ...f.claimCommand, expectedRevision: 1 },
+    "revise-claim",
+  );
+  assert.deepEqual(
+    await f.repo.recordEvidenceLinks(
+      c,
+      0,
+      evidenceDomain.createEvidenceState(c),
+      f.command,
+      "links",
+    ),
+    ack,
+  );
+  assert.equal((await f.repo.loadEvidenceLinks(c)).revision, 1);
+});
+test("link rollback storage CAS and current admission protect immutable history", async (t) => {
+  const f = await linkFixture(t);
+  f.hooks.rollback = true;
+  await assert.rejects(
+    f.repo.recordEvidenceLinks(c, 0, f.evidence, f.command, "links"),
+  );
+  f.hooks.rollback = false;
+  assert.equal((await f.repo.loadEvidenceLinks(c)).revision, 0);
+  const outcomes = await Promise.allSettled(
+    ["links", "other"].map((id) =>
+      f.repo.recordEvidenceLinks(c, 0, f.evidence, f.command, id),
+    ),
+  );
+  assert.equal(outcomes.filter((x) => x.status === "fulfilled").length, 1);
+  for (const bad of [
+    { ...c, purpose: "other" },
+    { ...c, actor: { ...c.actor, roles: ["viewer"] } },
+  ]) {
+    await assert.rejects(f.repo.loadEvidenceLinks(bad));
+    await assert.rejects(
+      f.repo.recordEvidenceLinks(bad, 0, f.evidence, f.command, "links"),
+    );
+  }
+  assert.equal((await f.repo.loadEvidenceLinks(c)).revision, 1);
 });

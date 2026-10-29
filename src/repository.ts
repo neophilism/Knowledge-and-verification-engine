@@ -1,3 +1,13 @@
+import type { EvidenceState } from "@accountability/evidence";
+import {
+  createEvidenceLinksState,
+  assertEvidenceLinksState,
+  reviseEvidenceLinks,
+} from "./evidence-links.ts";
+import type {
+  EvidenceLinksState,
+  EvidenceLinksCommand,
+} from "./evidence-links.ts";
 import {
   createEntityIdentityState,
   assertEntityIdentityState,
@@ -26,6 +36,8 @@ import {
   reviseKnowledge,
 } from "./index.ts";
 import type { KnowledgeState, KnowledgeValue } from "./index.ts";
+export const EVIDENCE_LINKS_KIND = "knowledge-evidence-links-history";
+export const EVIDENCE_LINKS_KEY = digest({ aggregate: EVIDENCE_LINKS_KIND });
 export const KNOWLEDGE_KIND = "knowledge-history";
 export const ENTITY_IDENTITY_KIND = "knowledge-entity-identity-history";
 export const ENTITY_IDENTITY_KEY = digest({ aggregate: ENTITY_IDENTITY_KIND });
@@ -245,6 +257,102 @@ export class KnowledgeRepository {
             json({ ...result, knowledgeRevision: knowledge.revision }),
           );
           await tx.enqueue("knowledge.entity-identity.revised", json(result));
+          return json(result);
+        },
+      )) as KnowledgeAcknowledgement;
+    });
+  }
+  async #links(tx: UnitOfWork, c: Context) {
+    const stored = await tx.get<EvidenceLinksState>(
+      EVIDENCE_LINKS_KIND,
+      EVIDENCE_LINKS_KEY,
+    );
+    if (!stored) return { revision: 0, state: createEvidenceLinksState(c) };
+    requireScope(c, stored.value);
+    assertEvidenceLinksState(stored.value);
+    invariant(
+      stored.revision === stored.value.records.length,
+      "invalid_links",
+      "Storage and link history sequence mismatch",
+    );
+    return { revision: stored.revision, state: stored.value };
+  }
+  async loadEvidenceLinks(context: Context) {
+    const c = this.#context(context);
+    return scoped(this.#db, c, async (tx) => {
+      await tx.audit("knowledge.evidence-links.read_checked", {});
+      const knowledge = await this.#load(tx, c),
+        links = await this.#links(tx, c);
+      return structuredClone({
+        ...links,
+        knowledgeRevision: knowledge.revision,
+      });
+    });
+  }
+  async recordEvidenceLinks(
+    context: Context,
+    expectedStorageRevision: number,
+    evidence: EvidenceState,
+    command: EvidenceLinksCommand,
+    commandId: string,
+  ): Promise<KnowledgeAcknowledgement> {
+    const c = this.#context(context),
+      q = structuredClone(command),
+      source = structuredClone(evidence);
+    nonempty(commandId, "Command", 128);
+    invariant(
+      Number.isSafeInteger(expectedStorageRevision) &&
+        expectedStorageRevision >= 0,
+      "invalid_revision",
+      "Expected link storage revision required",
+    );
+    return scoped(this.#db, c, async (tx) => {
+      await tx.audit("knowledge.evidence-links.append_checked", {});
+      const knowledge = await this.#load(tx, c),
+        links = await this.#links(tx, c);
+      return (await tx.idempotent(
+        commandId,
+        json({
+          operation: "evidence-links",
+          actorKind: c.actor.kind,
+          purpose: c.purpose,
+          expectedStorageRevision,
+          command: q,
+        }),
+        async () => {
+          invariant(
+            links.revision === expectedStorageRevision,
+            "revision_conflict",
+            "Link storage edition changed",
+          );
+          const state = reviseEvidenceLinks(
+            c,
+            knowledge.state,
+            source,
+            links.state,
+            q,
+          );
+          const stored = await tx.put(
+            EVIDENCE_LINKS_KIND,
+            EVIDENCE_LINKS_KEY,
+            links.revision,
+            state,
+          );
+          const result = {
+            storage: {
+              tenantId: c.tenantId,
+              projectId: c.projectId,
+              kind: EVIDENCE_LINKS_KIND,
+              id: EVIDENCE_LINKS_KEY,
+              revision: stored.revision,
+            },
+            record: state.records.at(-1)!.ref,
+          };
+          await tx.audit(
+            "knowledge.evidence-links.recorded",
+            json({ ...result, knowledgeRevision: knowledge.revision }),
+          );
+          await tx.enqueue("knowledge.evidence-links.revised", json(result));
           return json(result);
         },
       )) as KnowledgeAcknowledgement;
