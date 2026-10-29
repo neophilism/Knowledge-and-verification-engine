@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "observedAt": "2026-10-29T02:00:24Z",
   "unit": "AM-05.02",
-  "status": "partial; final-head CI and merge pending",
+  "status": "partial implementation; expanded source CI accepted; final documentation head requires current-head CI and normal merge",
   "sourceSha256": {
     "src/evidence-links.ts": "2c14abf52ac835e40498079b61e296e346f16ee6db1a81e4f246e96c0f692400",
     "tests/evidence-links.test.ts": "c91bacd8c1d7769bfca1f3cd821ac8591c791d31c566be56ae6d6d7baa5e380d",
@@ -37,5 +37,13 @@
     "No SQL/durable audit/atomicity/network/host/Identity/consent/rights/UI/browser/AT/live acceptance.",
     "Independence assessment is human-authored snapshot metadata, not independent verification of the assertion.",
     "All histories private; no sends/publication/payments; PAM stays foundation only."
-  ]
+  ],
+  "expandedCI": {
+    "source": "01dcb46daa2561fe252e3e8cc0a120689cdf1a2e",
+    "run": 40803800264,
+    "job": 123217829394,
+    "tests": 23,
+    "conclusion": "success",
+    "logsInspected": true
+  }
 }
