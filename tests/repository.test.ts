@@ -591,3 +591,44 @@ test("link rollback storage CAS and current admission protect immutable history"
   }
   assert.equal((await f.repo.loadEvidenceLinks(c)).revision, 1);
 });
+
+test("link source and command capture precede asynchronous SQL and shared command IDs cannot impersonate an append", async (t) => {
+  const f = await linkFixture(t),
+    source = structuredClone(f.evidence),
+    command = structuredClone(f.command),
+    pending = f.repo.recordEvidenceLinks(c, 0, source, command, "links");
+  Object.assign(command.links[0]!.selector, { quote: "Mutated caller text" });
+  Object.assign(source.representations[0]!, { text: "Mutated representation" });
+  await pending;
+  const read = await f.repo.loadEvidenceLinks(c),
+    selector = read.state.records[0]!.links[0]!.selector;
+  assert.equal(selector.kind, "text");
+  if (selector.kind !== "text") assert.fail("Expected captured text selector");
+  assert.equal(selector.quote, "😀");
+  await assert.rejects(f.repo.recordEvidenceLinks(c, 0, f.evidence, f.command, "claim"));
+  assert.equal((await f.repo.loadEvidenceLinks(c)).revision, 1);
+  assert.equal((await f.repo.load(c)).revision, 1);
+});
+
+test("foreign projects cannot see link histories and corrupt stored sequence denies cached replay while retaining old editions", async (t) => {
+  const f = await linkFixture(t),
+    ack = await f.repo.recordEvidenceLinks(c, 0, f.evidence, f.command, "links"),
+    read = await f.repo.loadEvidenceLinks(c),
+    foreign = { ...c, projectId: "other-project" },
+    other = new KnowledgeRepository(f.db, { ...f.policy, projectId: foreign.projectId });
+  assert.equal((await other.loadEvidenceLinks(foreign)).revision, 0);
+  assert.equal((await other.loadEvidenceLinks(foreign)).knowledgeRevision, 0);
+  await assert.rejects(other.recordEvidenceLinks(foreign, 0, f.evidence, f.command, "links"));
+  await scoped(f.db, c, async (tx) => {
+    // Fixture-only inconsistent sequence; public APIs never overwrite/import snapshots.
+    await tx.put(ack.storage.kind, ack.storage.id, 1, read.state);
+  });
+  await assert.rejects(f.repo.loadEvidenceLinks(c), { code: "invalid_links" });
+  await assert.rejects(f.repo.recordEvidenceLinks(c, 0, f.evidence, f.command, "links"), { code: "invalid_links" });
+  await scoped(f.db, c, async (tx) => {
+    const old = await tx.get(ack.storage.kind, ack.storage.id, 1);
+    assert.deepEqual(old?.value, read.state);
+    assert(verifyAudit(await tx.audits()));
+  });
+  assert.equal((await f.repo.load(c)).revision, 1);
+});
