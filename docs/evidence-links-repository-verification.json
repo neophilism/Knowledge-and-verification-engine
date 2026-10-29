@@ -1,0 +1,42 @@
+{
+  "status": "partial; current-head CI/merge required",
+  "localTests": 64,
+  "newRestrictedMigrationGroups": 7,
+  "typecheck": "passed",
+  "build": "passed",
+  "registry": "passed",
+  "initialCI": {
+    "source": "f7d93bb80c3e2c42f730b650bc25c9ae5136395e",
+    "run": 40860727418,
+    "job": 123402968265,
+    "tests": 62,
+    "conclusion": "success",
+    "headAndLogsInspected": true
+  },
+  "sourceSha256": {
+    "src/repository.ts": "7517b29c374eba0cfac18bf36b6d9f3e08dee4c1e15a5058c13295d4dd2ac734",
+    "src/identity-repository.ts": "c6168743133170b4a4450a3bf004666c3ca4ec948a8f45213c8b81974866e1b0",
+    "tests/repository.test.ts": "dba1da78cafbdc043e3fe5914cd54273650e5f52dedd2f1b29f8d9a03b63e992",
+    "tests/identity-repository.test.ts": "afb5ebd4c7f6d492e82acb35dcf96fcba887dca719fe17c30123ea45899deb0e"
+  },
+  "review": "No unresolved source finding. Own project lock precedes current stored Knowledge/link reads and cache. Separate storage CAS and accepted exact-selector domain validate new writes. Historical replay returns original refs without fresh claim/source re-attestation. Isolated operation fingerprint; current Identity facade guards both methods. Atomic record/audit/outbox/ack; immutable history and existing caps. Source snapshots are host trusted, not authenticated transport.",
+  "limits": [
+    "Host must independently authenticate current Evidence snapshots, original-byte provenance and current consent/rights/Identity permissions; synthetic scanner/parser fixtures do not qualify production source services.",
+    "Historical replay deliberately excludes supplied source snapshot from fingerprint and does not revalidate it; not a fresh source attestation or action permit.",
+    "Identity and Knowledge use separate owning DBs with sequential observations, not distributed permission fencing. Use current Identity facade exclusively where required.",
+    "Host ingress/CPU/heap/driver/transaction/concurrency bounds remain mandatory; cloning/validation cannot preempt JavaScript. Begun SQL is awaited and lost acknowledgement is unknown.",
+    "Embedded PGlite contenders and hooks are not independent network-session contention, crash/TLS/failover or live deployment qualification.",
+    "No HTTP/UI/browser/AT/provider/send/publication/payment path. PAM stays foundation."
+  ],
+  "installedCompiledExportTests": 64,
+  "repositoryAndIdentityJsByteMatch": true,
+  "installedHarness": "Each of six test files ran sequentially in a separate Node process against freshly packed installed public exports; exit code and complete TAP tests/fail footer checked, total64. First aggregate installed invocation produced no full footer and is not counted as complete acceptance.",
+  "expandedCI": {
+    "source": "adaa9c295300c64fb523ee61a934672f89ac454a",
+    "run": 40861626900,
+    "job": 123406032547,
+    "tests": 64,
+    "conclusion": "success",
+    "headAndLogsInspected": true
+  }
+}

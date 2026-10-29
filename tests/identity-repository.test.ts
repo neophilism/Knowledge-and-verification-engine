@@ -1,3 +1,4 @@
+import { createEvidenceState } from "@accountability/evidence";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -244,4 +245,64 @@ test("pair methods use current Identity policy on every invocation including cac
     code: "identity_unavailable",
   });
   assert.equal((await f.repo.loadEntityIdentities(c)).revision, 1);
+});
+
+test("link methods require fresh Identity policy including replay; empty set never supplies evidence", async (t) => {
+  const f = await fixture(t);
+  await assert.rejects(f.facade.loadEvidenceLinks(c), {
+    code: "identity_unavailable",
+  });
+  await f.membership.setResourcePolicy(c, 0, f.policy, "allow");
+  const claim = (
+    await f.facade.append(
+      c,
+      0,
+      {
+        id: "claim",
+        expectedRevision: 0,
+        value: {
+          type: "claim",
+          text: "Unverified fixture",
+          subjectRefs: [],
+          time: { earliest: null, latest: null },
+          accountType: "observation",
+          limitations: [],
+          assessment: null,
+          proceduralPosture: null,
+          editorialApproval: null,
+        },
+      },
+      "claim",
+    )
+  ).record;
+  const command = { claim, expectedRevision: 0, links: [] };
+  await f.facade.recordEvidenceLinks(
+    c,
+    0,
+    createEvidenceState(c),
+    command,
+    "links",
+  );
+  const view = await f.facade.loadEvidenceLinks(c);
+  assert.equal(view.revision, 1);
+  assert.equal(view.state.records[0]!.links.length, 0);
+  await f.membership.setResourcePolicy(
+    c,
+    1,
+    { ...f.policy, actions: [] },
+    "deny",
+  );
+  await assert.rejects(
+    f.facade.recordEvidenceLinks(
+      c,
+      0,
+      createEvidenceState(c),
+      command,
+      "links",
+    ),
+    { code: "identity_unavailable" },
+  );
+  await assert.rejects(f.facade.loadEvidenceLinks(c), {
+    code: "identity_unavailable",
+  });
 });

@@ -1,3 +1,5 @@
+import type { EvidenceState } from "@accountability/evidence";
+import type { EvidenceLinksCommand } from "./evidence-links.ts";
 import type { EntityIdentityInput } from "./entity-identity.ts";
 import type { MembershipRegistry } from "@accountability/identity-policy/membership";
 import { digest, invariant, nonempty, requireScope } from "./contracts.ts";
@@ -10,6 +12,8 @@ export const KNOWLEDGE_RESOURCE_ID = digest({
 export class IdentityKnowledgeRepository {
   readonly #resolve: MembershipRegistry["resolveResource"];
   readonly #load: KnowledgeRepository["load"];
+  readonly #links: KnowledgeRepository["loadEvidenceLinks"];
+  readonly #recordLinks: KnowledgeRepository["recordEvidenceLinks"];
   readonly #pairs: KnowledgeRepository["loadEntityIdentities"];
   readonly #recordPair: KnowledgeRepository["recordEntityIdentity"];
   readonly #append: KnowledgeRepository["append"];
@@ -23,6 +27,8 @@ export class IdentityKnowledgeRepository {
   ) {
     this.#resolve = membership.resolveResource.bind(membership);
     this.#load = repository.load.bind(repository);
+    this.#links = repository.loadEvidenceLinks.bind(repository);
+    this.#recordLinks = repository.recordEvidenceLinks.bind(repository);
     this.#pairs = repository.loadEntityIdentities.bind(repository);
     this.#recordPair = repository.recordEntityIdentity.bind(repository);
     this.#append = repository.append.bind(repository);
@@ -117,6 +123,27 @@ export class IdentityKnowledgeRepository {
     return this.#recordPair(
       await this.#context(context, signal),
       expectedStorageRevision,
+      q,
+      commandId,
+    );
+  }
+  async loadEvidenceLinks(context: Context, signal?: AbortSignal) {
+    return this.#links(await this.#context(context, signal));
+  }
+  async recordEvidenceLinks(
+    context: Context,
+    expectedStorageRevision: number,
+    evidence: EvidenceState,
+    command: EvidenceLinksCommand,
+    commandId: string,
+    signal?: AbortSignal,
+  ) {
+    const source = structuredClone(evidence),
+      q = structuredClone(command);
+    return this.#recordLinks(
+      await this.#context(context, signal),
+      expectedStorageRevision,
+      source,
       q,
       commandId,
     );

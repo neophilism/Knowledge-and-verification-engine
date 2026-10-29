@@ -25,3 +25,5 @@ Partial owning-database persistence of KnowledgeState is documented in REPOSITOR
 Opt-in current stored Identity/resource-policy integration is documented in IDENTITY_REPOSITORY.md. Earlier host-roles-only limitations remain applicable to direct legacy repository access.
 
 Durable reversible entity-pair judgments and their opt-in Identity methods are documented in ENTITY_IDENTITY_REPOSITORY.md. EvidenceLinks persistence remains pending; no inferred identity merging is added.
+
+Partial own-DB evidence-link persistence and guarded Identity methods are documented in EVIDENCE_LINKS_REPOSITORY.md. Earlier link-persistence pending notes are historical; authenticated current source transport remains pending.
