@@ -1,0 +1,414 @@
+{
+  "schemaVersion": 1,
+  "repository": "neophilism/Knowledge-and-verification-engine",
+  "roadmapVersion": 1,
+  "planVerified": true,
+  "plannedPrCount": 16,
+  "observedAt": "2026-10-29T00:59:41Z",
+  "units": [
+    {
+      "id": "AM-02.01",
+      "title": "Evidence versions and acquisitions",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-01.03",
+        "AM-01.05",
+        "AM-01.06",
+        "AM-01.08"
+      ],
+      "externalDependencies": [
+        "AM-01.03",
+        "AM-01.05",
+        "AM-01.06",
+        "AM-01.08"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Implement immutable originals, acquisition methods, dates, digests and object references."
+      ],
+      "acceptanceCriteria": [
+        "Changed bytes at the same URL become a new version and old citations still resolve.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-02.02",
+      "title": "Quarantine and parser isolation",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-02.01"
+      ],
+      "externalDependencies": [
+        "AM-02.01"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Connect scanning and file-type limits; sandbox parsing and derivative generation."
+      ],
+      "acceptanceCriteria": [
+        "Infected, unknown and failed-scan files cannot be promoted; malformed documents cannot escape workers.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-02.03",
+      "title": "Source families and deduplication",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-02.01"
+      ],
+      "externalDependencies": [
+        "AM-02.01"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Separate works, editions, mirrors, copies and independent sources with reversible matching."
+      ],
+      "acceptanceCriteria": [
+        "Three mirrors do not become three corroborating witnesses; merge reversal restores references.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-02.04",
+      "title": "Precise selectors and evidence viewer",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-02.01",
+        "AM-02.03"
+      ],
+      "externalDependencies": [
+        "AM-02.01",
+        "AM-02.03"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Implement text/page/time selectors, original/derivative alignment and highlights."
+      ],
+      "acceptanceCriteria": [
+        "Selected snippets open the correct page, region or media segment after export/import.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-02.05",
+      "title": "Handling records and integrity checks",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-02.01"
+      ],
+      "externalDependencies": [
+        "AM-02.01"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Record custody and transformations, verify digests and generate evidence manifests."
+      ],
+      "acceptanceCriteria": [
+        "Backup restoration and a deliberate corruption produce correct pass/fail records.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-02.06",
+      "title": "Retention and protected derivatives",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-02.01",
+        "AM-02.02"
+      ],
+      "externalDependencies": [
+        "AM-02.01",
+        "AM-02.02"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Implement scoped copies, redaction, holds, expiry and erasure impact reporting."
+      ],
+      "acceptanceCriteria": [
+        "Redacted text and metadata are absent from derivative bytes while restricted originals remain authorized-only.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-02.07",
+      "title": "Interchange and import dry run",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-02.01"
+      ],
+      "externalDependencies": [
+        "AM-02.01"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Create versioned portable bundles with legacy IDs and provenance gaps."
+      ],
+      "acceptanceCriteria": [
+        "Round-trip preserves revisions, uncertainty and source relationships and rejects missing mandatory references.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-02.08",
+      "title": "Visual provenance and audit export",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-02.01",
+        "AM-02.02",
+        "AM-02.03",
+        "AM-02.04",
+        "AM-02.05",
+        "AM-02.06",
+        "AM-02.07"
+      ],
+      "externalDependencies": [
+        "AM-02.01",
+        "AM-02.02",
+        "AM-02.03",
+        "AM-02.04",
+        "AM-02.05",
+        "AM-02.06",
+        "AM-02.07"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Provide lineage graph, acquisition history and authorized evidence inventory."
+      ],
+      "acceptanceCriteria": [
+        "Every derivative reveals inputs and handling events; hidden evidence cannot leak through graph counts.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-05.01",
+      "title": "Entity event and claim model",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [
+        1
+      ],
+      "dependsOn": [
+        "AM-02.03",
+        "AM-02.04",
+        "AM-04.04"
+      ],
+      "externalDependencies": [
+        "AM-02.03",
+        "AM-02.04",
+        "AM-04.04"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Implement versioned entities, time ranges, role assertions and independent assessment dimensions."
+      ],
+      "acceptanceCriteria": [
+        "Unknown dates remain unknown and entity match ambiguity is reviewable and reversible.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "Partial PR1 pure bounded private entity/event/unassessed-claim revisions, explicit unknown UTC intervals, exact current subject/predecessor links, independent null assessment/procedural/editorial tracks and detached host-role/scope inspection. Twelve local tests/typecheck/build/registry pass after clean normal install, including actual2048 cap/2MiB UTF8 boundary. Initial source03c4de56ebecd73af68074a3f3d6a4e9ee1483ed CI40797317206/job123196826801 failed npm ci due symlink-generated workspace-path lock; regenerated clean lock, tests not run in that initial CI. All twelve groups also pass installed compiled public exports/index JS byte-match. Final-head CI/reviewed merge pending. Full approved15-engine/122-task JSON retained byte-for-byte; no private deployment policy. No qualified selectors/source families/evidence truth/assessment/entity resolution/correction impact/SQL storage/auth/consent/UI/live acceptance. Dependencies/visual acceptance remain integration prerequisites; not a completed AM-05.01. Expanded source5594de30fe5a1b1029243256398b596231a1efa9 CI40797547980/check123197575447 clean npm ci/12tests/typecheck/build/registry SUCCESS, logs inspected. Final-head acceptance remains required."
+    },
+    {
+      "id": "AM-05.02",
+      "title": "Evidence link and source dependence",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-05.01"
+      ],
+      "externalDependencies": [
+        "AM-05.01"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Support/challenge claims with selectors and source-family relations."
+      ],
+      "acceptanceCriteria": [
+        "Copied reports cannot inflate corroboration and unsupported links fail validation.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-05.03",
+      "title": "Question and hypothesis planning",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-05.01"
+      ],
+      "externalDependencies": [
+        "AM-05.01"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Create material-question trees, competing explanations, leads and stop conditions."
+      ],
+      "acceptanceCriteria": [
+        "A report becomes a plan including at least one route for testing contrary evidence where applicable.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-05.04",
+      "title": "Claim extraction and answer proposals",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-05.01",
+        "AM-05.02",
+        "AM-04.05"
+      ],
+      "externalDependencies": [
+        "AM-05.01",
+        "AM-05.02",
+        "AM-04.05"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Generate structured assertions from passages and replies with exact citations."
+      ],
+      "acceptanceCriteria": [
+        "Every accepted proposal resolves to the original span; invented citations are rejected.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-05.05",
+      "title": "Verification and challenge workflow",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-05.01",
+        "AM-05.04"
+      ],
+      "externalDependencies": [
+        "AM-05.01",
+        "AM-05.04"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Assess authenticity, source knowledge, independent support and counterevidence."
+      ],
+      "acceptanceCriteria": [
+        "A contradicted or unresolved assertion cannot silently become a verified finding.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-05.06",
+      "title": "Investigation completeness and closure",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-05.01",
+        "AM-05.03",
+        "AM-05.05"
+      ],
+      "externalDependencies": [
+        "AM-05.01",
+        "AM-05.03",
+        "AM-05.05"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Track coverage, unavailable sources, exhausted leads, review basis and reopening triggers."
+      ],
+      "acceptanceCriteria": [
+        "Material unanswered questions are explicitly unresolved, deferred or assigned before closure.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-05.07",
+      "title": "Evidence reports and referral packages",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-05.01"
+      ],
+      "externalDependencies": [
+        "AM-05.01"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Generate chronologies, claim dossiers, records-request drafts and scoped professional bundles."
+      ],
+      "acceptanceCriteria": [
+        "Export includes contrary material, attribution limits and exact evidence versions within its authorized scope.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    },
+    {
+      "id": "AM-05.08",
+      "title": "Correction impact computation",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "AM-05.01",
+        "AM-05.02",
+        "AM-05.03",
+        "AM-05.04",
+        "AM-05.05",
+        "AM-05.06",
+        "AM-05.07"
+      ],
+      "externalDependencies": [
+        "AM-05.01",
+        "AM-05.02",
+        "AM-05.03",
+        "AM-05.04",
+        "AM-05.05",
+        "AM-05.06",
+        "AM-05.07"
+      ],
+      "externalPrerequisites": [],
+      "scope": [
+        "Traverse revised claim/source relationships and invalidate dependent decisions."
+      ],
+      "acceptanceCriteria": [
+        "A corrected date finds all affected claims, findings and draft outputs while leaving unrelated work usable.",
+        "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
+      ],
+      "implementationStatus": "planned; not implemented in this foundation"
+    }
+  ],
+  "pullRequests": [],
+  "scopeNote": "plannedPrCount counts the eight original joint E07/E08 requirement units, not accepted implementations or a guarantee of one PR per task. All122 original tasks and15 engines retained in approved design; E08 workflow work remains separately owned."
+}
