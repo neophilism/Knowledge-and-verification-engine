@@ -1,3 +1,4 @@
+import type { EntityIdentityInput } from "./entity-identity.ts";
 import type { MembershipRegistry } from "@accountability/identity-policy/membership";
 import { digest, invariant, nonempty, requireScope } from "./contracts.ts";
 import type { Context, Scope } from "./contracts.ts";
@@ -9,6 +10,8 @@ export const KNOWLEDGE_RESOURCE_ID = digest({
 export class IdentityKnowledgeRepository {
   readonly #resolve: MembershipRegistry["resolveResource"];
   readonly #load: KnowledgeRepository["load"];
+  readonly #pairs: KnowledgeRepository["loadEntityIdentities"];
+  readonly #recordPair: KnowledgeRepository["recordEntityIdentity"];
   readonly #append: KnowledgeRepository["append"];
   readonly #policy: Scope & Readonly<{ purpose: string }>;
   readonly #timeout: number;
@@ -20,6 +23,8 @@ export class IdentityKnowledgeRepository {
   ) {
     this.#resolve = membership.resolveResource.bind(membership);
     this.#load = repository.load.bind(repository);
+    this.#pairs = repository.loadEntityIdentities.bind(repository);
+    this.#recordPair = repository.recordEntityIdentity.bind(repository);
     this.#append = repository.append.bind(repository);
     this.#policy = structuredClone(policy);
     this.#timeout = timeoutMs;
@@ -92,6 +97,24 @@ export class IdentityKnowledgeRepository {
   ) {
     const q = structuredClone(command);
     return this.#append(
+      await this.#context(context, signal),
+      expectedStorageRevision,
+      q,
+      commandId,
+    );
+  }
+  async loadEntityIdentities(context: Context, signal?: AbortSignal) {
+    return this.#pairs(await this.#context(context, signal));
+  }
+  async recordEntityIdentity(
+    context: Context,
+    expectedStorageRevision: number,
+    input: EntityIdentityInput,
+    commandId: string,
+    signal?: AbortSignal,
+  ) {
+    const q = structuredClone(input);
+    return this.#recordPair(
       await this.#context(context, signal),
       expectedStorageRevision,
       q,

@@ -23,3 +23,5 @@ Partial versioned role/relationship assertions are documented in RELATIONSHIPS.m
 Partial owning-database persistence of KnowledgeState is documented in REPOSITORY.md. Pure library notes above remain historical; EvidenceLinks/entity-identity persistence and current Identity integration are still pending.
 
 Opt-in current stored Identity/resource-policy integration is documented in IDENTITY_REPOSITORY.md. Earlier host-roles-only limitations remain applicable to direct legacy repository access.
+
+Durable reversible entity-pair judgments and their opt-in Identity methods are documented in ENTITY_IDENTITY_REPOSITORY.md. EvidenceLinks persistence remains pending; no inferred identity merging is added.

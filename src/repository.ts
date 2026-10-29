@@ -1,3 +1,12 @@
+import {
+  createEntityIdentityState,
+  assertEntityIdentityState,
+  recordEntityIdentity,
+} from "./entity-identity.ts";
+import type {
+  EntityIdentityState,
+  EntityIdentityInput,
+} from "./entity-identity.ts";
 import { scoped } from "@accountability/evidence-sql/database";
 import type {
   Database,
@@ -18,6 +27,8 @@ import {
 } from "./index.ts";
 import type { KnowledgeState, KnowledgeValue } from "./index.ts";
 export const KNOWLEDGE_KIND = "knowledge-history";
+export const ENTITY_IDENTITY_KIND = "knowledge-entity-identity-history";
+export const ENTITY_IDENTITY_KEY = digest({ aggregate: ENTITY_IDENTITY_KIND });
 export const KNOWLEDGE_KEY = digest({ aggregate: KNOWLEDGE_KIND });
 export type KnowledgeAppend = Readonly<{
   id: string;
@@ -141,6 +152,99 @@ export class KnowledgeRepository {
           };
           await tx.audit("knowledge.appended", json(result));
           await tx.enqueue("knowledge.revised", json(result));
+          return json(result);
+        },
+      )) as KnowledgeAcknowledgement;
+    });
+  }
+  async #identities(tx: UnitOfWork, c: Context) {
+    const stored = await tx.get<EntityIdentityState>(
+      ENTITY_IDENTITY_KIND,
+      ENTITY_IDENTITY_KEY,
+    );
+    if (!stored) return { revision: 0, state: createEntityIdentityState(c) };
+    requireScope(c, stored.value);
+    assertEntityIdentityState(stored.value);
+    invariant(
+      stored.revision === stored.value.records.length,
+      "invalid_identity",
+      "Storage and pair history sequence mismatch",
+    );
+    return { revision: stored.revision, state: stored.value };
+  }
+  async loadEntityIdentities(context: Context) {
+    const c = this.#context(context);
+    return scoped(this.#db, c, async (tx) => {
+      await tx.audit("knowledge.entity-identity.read_checked", {});
+      const knowledge = await this.#load(tx, c),
+        pairs = await this.#identities(tx, c);
+      return structuredClone({
+        ...pairs,
+        knowledgeRevision: knowledge.revision,
+      });
+    });
+  }
+  async recordEntityIdentity(
+    context: Context,
+    expectedStorageRevision: number,
+    input: EntityIdentityInput,
+    commandId: string,
+  ): Promise<KnowledgeAcknowledgement> {
+    const c = this.#context(context),
+      q = structuredClone(input);
+    nonempty(commandId, "Command", 128);
+    invariant(
+      Number.isSafeInteger(expectedStorageRevision) &&
+        expectedStorageRevision >= 0,
+      "invalid_revision",
+      "Expected pair storage revision required",
+    );
+    return scoped(this.#db, c, async (tx) => {
+      await tx.audit("knowledge.entity-identity.append_checked", {});
+      const knowledge = await this.#load(tx, c),
+        pairs = await this.#identities(tx, c);
+      return (await tx.idempotent(
+        commandId,
+        json({
+          operation: "entity-identity",
+          actorKind: c.actor.kind,
+          purpose: c.purpose,
+          expectedStorageRevision,
+          input: q,
+        }),
+        async () => {
+          invariant(
+            pairs.revision === expectedStorageRevision,
+            "revision_conflict",
+            "Pair storage edition changed",
+          );
+          const state = recordEntityIdentity(
+            c,
+            knowledge.state,
+            pairs.state,
+            q,
+          );
+          const stored = await tx.put(
+            ENTITY_IDENTITY_KIND,
+            ENTITY_IDENTITY_KEY,
+            pairs.revision,
+            state,
+          );
+          const result = {
+            storage: {
+              tenantId: c.tenantId,
+              projectId: c.projectId,
+              kind: ENTITY_IDENTITY_KIND,
+              id: ENTITY_IDENTITY_KEY,
+              revision: stored.revision,
+            },
+            record: state.records.at(-1)!.ref,
+          };
+          await tx.audit(
+            "knowledge.entity-identity.recorded",
+            json({ ...result, knowledgeRevision: knowledge.revision }),
+          );
+          await tx.enqueue("knowledge.entity-identity.revised", json(result));
           return json(result);
         },
       )) as KnowledgeAcknowledgement;
