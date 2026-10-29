@@ -281,16 +281,20 @@ test("copies/mirrors never inflate support; contrary evidence has a separate ana
     reason: "Fixture copy",
   });
   evidence = add(evidence, "copy", "A😀B fixture", "mirror");
+  evidence = add(
+    evidence,
+    "derived",
+    "Distinct bytes from the same root",
+    "mirror",
+  );
   evidence = add(evidence, "contrary", "Different account", null);
   const links: l.EvidenceLinkInput[] = [
     f.q.links[0]!,
-    ...evidence.versions
-      .slice(1)
-      .map((v, i) => ({
-        id: v.ref.id,
-        relation: i === 0 ? ("supports" as const) : ("challenges" as const),
-        selector: { kind: "whole" as const, evidence: v.ref, sha256: v.sha256 },
-      })),
+    ...evidence.versions.slice(1).map((v, i) => ({
+      id: v.ref.id,
+      relation: i < 2 ? ("supports" as const) : ("challenges" as const),
+      selector: { kind: "whole" as const, evidence: v.ref, sha256: v.sha256 },
+    })),
   ];
   const s = l.reviseEvidenceLinks(c, f.knowledge, evidence, f.state, {
     ...f.q,
@@ -298,7 +302,7 @@ test("copies/mirrors never inflate support; contrary evidence has a separate ana
   });
   const r = review(f, s, evidence);
   assert.equal(r.sources.supports.sourceGroupCount, 1);
-  assert.equal(r.sources.supports.uniqueByteCount, 1);
+  assert.equal(r.sources.supports.uniqueByteCount, 2);
   assert.equal(r.sources.challenges.sourceGroupCount, 1);
   assert.equal(r.sources.challenges.independentFamilyCount, null);
   assert.equal(r.sources.quotes.sourceGroupCount, 0);
@@ -431,4 +435,117 @@ test("exact profiles, duplicate links, injected approvals and captured-state tam
   const changed = structuredClone(s);
   (changed.records[0]!.links[0]!.family.roots as string[]).push("forged");
   assert.throws(() => review(f, changed), code("stale_evidence_links"));
+});
+
+test("512 valid captured editions reject another append without eviction; UTF8 aggregate cap is independent", () => {
+  const f = setup();
+  const first = append(f);
+  const one = first.records[0]!;
+  const records = Array.from({ length: 512 }, (_, i) => ({
+    ...structuredClone(one),
+    ref: { ...one.ref, revision: i + 1 },
+    supersedes: i === 0 ? null : { ...one.ref, revision: i },
+  }));
+  const full: l.EvidenceLinksState = { ...first, records };
+  l.assertEvidenceLinksState(full);
+  assert.throws(
+    () =>
+      l.reviseEvidenceLinks(c, f.knowledge, f.evidence, full, {
+        ...f.q,
+        expectedRevision: 512,
+      }),
+    code("invalid_links"),
+  );
+  assert.equal(full.records.length, 512);
+  assert.equal(full.records[0]!.ref.revision, 1);
+  const huge = structuredClone(full);
+  for (const record of huge.records) {
+    const sel = record.links[0]!.selector as Extract<
+      e.EvidenceSelector,
+      { kind: "text" }
+    >;
+    Object.assign(sel, { quote: "😀".repeat(4000), start: 0, end: 8000 });
+  }
+  assert.throws(() => l.assertEvidenceLinksState(huge), code("links_full"));
+});
+
+test("64-link ceiling, oversized snapshots, family cycles and expansion budgets reject", () => {
+  const f = setup();
+  const whole = {
+    kind: "whole" as const,
+    evidence: f.selector.evidence,
+    sha256: f.selector.sha256,
+  };
+  assert.throws(
+    () =>
+      append(f, {
+        ...f.q,
+        links: Array.from({ length: 65 }, (_, i) => ({
+          id: "x" + i,
+          relation: "supports",
+          selector: whole,
+        })),
+      }),
+    code("invalid_links"),
+  );
+  const huge = structuredClone(f.evidence);
+  Object.assign(huge, { padding: "x".repeat(8 * 1024 * 1024) });
+  assert.throws(
+    () => l.reviseEvidenceLinks(c, f.knowledge, huge, f.state, f.q),
+    code("links_full"),
+  );
+  const cyclic = structuredClone(f.evidence);
+  Object.assign(cyclic, {
+    families: [{ id: "a", label: "Cycle", parentIds: ["a"], reason: "Test" }],
+  });
+  assert.throws(
+    () => l.reviseEvidenceLinks(c, f.knowledge, cyclic, f.state, f.q),
+    code("invalid_links"),
+  );
+  const explosive = structuredClone(f.evidence);
+  Object.assign(explosive, {
+    families: Array.from({ length: 18 }, (_, i) => ({
+      id: "f" + i,
+      label: "Family",
+      parentIds: Array.from({ length: i }, (_, j) => "f" + j),
+      reason: "Synthetic graph",
+    })),
+  });
+  assert.throws(
+    () => l.reviseEvidenceLinks(c, f.knowledge, explosive, f.state, f.q),
+    code("invalid_links"),
+  );
+  assert.equal(f.state.records.length, 0);
+});
+
+test("changed source-family graph invalidates captured fingerprints and requires deliberate replacement", () => {
+  const f = setup("root");
+  const s = append(f);
+  const evidence = e.addSourceFamily(f.evidence, c, {
+    id: "mirror",
+    label: "Mirror",
+    parentIds: ["root"],
+    reason: "Fixture reassessment",
+  });
+  assert.throws(() => review(f, s, evidence), code("stale_evidence_links"));
+  const next = l.reviseEvidenceLinks(c, f.knowledge, evidence, s, {
+    ...f.q,
+    expectedRevision: 1,
+    links: [],
+  });
+  const r = review(f, next, evidence);
+  assert.equal(r.sources.supports.sourceGroupCount, 0);
+  assert.equal(r.sources.supports.independentFamilyCount, null);
+  assert.equal(next.records[0]!.links.length, 1);
+  assert.equal(next.records[1]!.links.length, 0);
+  const corrupt = structuredClone(evidence);
+  Object.assign(corrupt.versions[0]!, { metadataHash: "0".repeat(64) });
+  assert.throws(
+    () =>
+      l.reviseEvidenceLinks(c, f.knowledge, corrupt, f.state, {
+        ...f.q,
+        links: [],
+      }),
+    code("integrity_failure"),
+  );
 });

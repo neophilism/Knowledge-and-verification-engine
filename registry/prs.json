@@ -4,7 +4,7 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 16,
-  "observedAt": "2026-10-29T01:56:16Z",
+  "observedAt": "2026-10-29T01:59:55Z",
   "units": [
     {
       "id": "AM-02.01",
@@ -237,7 +237,9 @@
       "title": "Evidence link and source dependence",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [],
+      "contributingPrs": [
+        2
+      ],
       "dependsOn": [
         "AM-05.01"
       ],
@@ -252,8 +254,8 @@
         "Copied reports cannot inflate corroboration and unsupported links fail validation.",
         "Provide the authorized visual or table view, source-bound test evidence and documented failure behavior."
       ],
-      "implementationStatus": "partial: exact private claim-bound Evidence links and explicit snapshot revalidation; draft checkpoint, final review/CI pending",
-      "implementationEvidence": "New evidence-links subpath reuses pinned accepted Evidence selectors/families/fingerprints/source grouping; no inferred truth or external authority. Persistence/current authenticated snapshot transport/UI remain pending."
+      "implementationStatus": "partial: exact private Evidence links and explicit snapshot revalidation; source/installed checks pass; final-head CI/merge pending",
+      "implementationEvidence": "PR2; docs/EVIDENCE_LINKS.md and docs/evidence-links-verification.json. 23 local tests/typecheck/build/registry; all23 installed compiled exports/JS match. Eleven new actual pinned domain groups, prior12 preserved. Initial6fa03c72 CI40803447014/check123216699192 success20/logs inspected. Current authenticated Evidence snapshot transport, host Identity/consent/rights, durable own-DB history and UI remain pending; no truth/authentication/network/live claim."
     },
     {
       "id": "AM-05.03",
