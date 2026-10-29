@@ -1,0 +1,56 @@
+{
+  "observedAt": "2026-10-29T16:57:02.817615+00:00",
+  "scope": "Partial AM-05.01/02 owning Knowledge PostgreSQL sessions",
+  "runtimeChange": false,
+  "local": {
+    "ordinaryTests": 69,
+    "typecheckBuildRegistry": "passed",
+    "strictIntegrationCompile": "passed",
+    "unsafeConfigChildCases": 4,
+    "postgres": "unavailable",
+    "docker": "unavailable",
+    "newInstalledRuntimeClaim": false
+  },
+  "ci": {
+    "source": "09a6468b2130d153344f196d80c0f0e806709d5a",
+    "run": 40916138527,
+    "check": 123596748563,
+    "ordinaryTests": 69,
+    "postgres": 123596748061,
+    "actualPostgres17Groups": 7,
+    "headAndLogsInspected": true,
+    "conclusion": "success"
+  },
+  "initialCi": {
+    "source": "8b89706f4ae53af97b07c4f0f32d5cdf5c938553",
+    "run": 40915878504,
+    "postgres": 123595834098,
+    "actualGroups": 5,
+    "logsInspected": true
+  },
+  "review": [
+    "Canonical pinned SQL SDK migration; runtime restricted authenticated LOGIN/distinct PIDs; explicit empty disposable loopback knowledge_ci/no reset; unsafe configs refused before connect",
+    "Append storage CAS has one winning history/audit/outbox; lost actual COMMIT ACK fresh-pool historical replay no second effect",
+    "Real public claim/link revisions held BEFORE COMMIT; independent pg_stat_activity Lock and nonempty pg_blocking_pids REQUIRED before commit; review and fresh-pool review deny stale editions, denied audit rolls back",
+    "Pair/link aggregate same-revision contender independently observed waiting behind real public winner; winner COMMIT acknowledged only to underlying driver then injected failure; fresh-pool exact replay returns one history with one recorded audit/change outbox and unchanged Knowledge basis revision",
+    "Admin and role-lowered admin actual Knowledge adapters reject; restricted LOGIN cannot create schema or SET ROLE postgres; raw unscoped reads empty versus positive owning scopes across two same-key projects",
+    "Source review corrected audit assertion name knowledge.appended before first checkpoint; no CI failures; runtime sources unchanged"
+  ],
+  "limits": [
+    "Empty link sets isolate owning revision consistency; no source bytes/selector/scanner/independence/consent/rights authentication or truth qualification",
+    "Context/GUC trusted host input, not identity authentication; actual Identity/current external gateway network not covered",
+    "Only these seven TCP scenarios; no production credentials/remote TLS/failover/throughput/multinode/crash or distributed action fence",
+    "No local PostgreSQL/Docker or new installed-runtime acceptance; prior compiled package tests remain separate",
+    "No runtime/API/dependency pin/contracts/migration change/provider/send/publication/payment/PAM"
+  ],
+  "mergeAcceptance": "Inspect actual final PR10 head checks and branch rules before expected-head merge.",
+  "sourceSha256": {
+    "integration/postgres-knowledge.test.ts": "280e9a0dc570adcea360103af1e81a4567a98b34ccb3b4a95dd865cd7310cbbc",
+    "tests/postgres-fixture.test.ts": "931aca160ee5086b35235a2cbb0061f79bf4b70e441a81a8338508ee6532dd56",
+    "package.json": "2c237f1d6365e5c29575d0045fa0fe3cbc86f12f7718fd7c4727eb7ee9d75145",
+    ".github/workflows/check.yml": "4b6f358fa8d9130a16b628943f20311b35ace7ee8c1c6344d89aa7aa6d3e42af",
+    "docs/POSTGRES_TESTS.md": "9acc8fd4d63356ebb5e45570a8249b1f99bfe0adc8e33e3d5c61087cb8918a09",
+    "docs/ARCHITECTURE.md": "e4fcd3f0f7b048c27763950d446e0631586be9b850d414e710363390359f5f03",
+    "registry/prs.json": "7e5db6500a6641d86e7d2e26d535d5a30c9708f2995f1b5950a770e6597e83d6"
+  }
+}
