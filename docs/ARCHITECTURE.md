@@ -21,3 +21,5 @@ Partial explicit reversible identity pair judgments are documented in ENTITY_IDE
 Partial versioned role/relationship assertions are documented in RELATIONSHIPS.md. The earlier entity/event/claim-only foundation descriptions remain historical; the additive profile keeps independent null assessment tracks and exact immutable subject links. No cross-engine pin is silently advanced.
 
 Partial owning-database persistence of KnowledgeState is documented in REPOSITORY.md. Pure library notes above remain historical; EvidenceLinks/entity-identity persistence and current Identity integration are still pending.
+
+Opt-in current stored Identity/resource-policy integration is documented in IDENTITY_REPOSITORY.md. Earlier host-roles-only limitations remain applicable to direct legacy repository access.
