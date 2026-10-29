@@ -1,0 +1,36 @@
+{
+  "status": "partial; current-head CI/merge required",
+  "localTests": 57,
+  "installedCompiledExportTests": 57,
+  "newRestrictedMigrationGroups": 7,
+  "repositoryAndIdentityJsByteMatch": true,
+  "typecheck": "passed",
+  "build": "passed",
+  "registry": "passed",
+  "initialCI": {
+    "source": "8d26069ebb644e6d3cbf9dbab97789a1ba61dc73",
+    "run": 40853879112,
+    "job": 123379861150,
+    "tests": 55,
+    "conclusion": "success",
+    "headAndLogsInspected": true
+  },
+  "sourceSha256": {
+    "src/repository.ts": "1a8ff8373cc51848519fae471cce4dbc62365959528e6ba35ad43732c475eb2c",
+    "src/identity-repository.ts": "c2ac2c4e7872a98ab943ce9bbe7e2601602e3c01e5645c544fce5d673ab53ce1",
+    "tests/repository.test.ts": "761d1c819ab4f56f400099471518c41df446279edbc90e8597f9289ad0c57bac",
+    "tests/identity-repository.test.ts": "a103b3f5c72616dc65260a8a6599f8d1f23558fa278ff748ae1dc7970a54360e"
+  },
+  "review": "No unresolved finding. Actual own-lock current Knowledge and pair reads; separate storage and per-pair CAS; accepted domain unchanged; authority and corrupted history checked before cached ack; atomic audit/outbox/ack; explicit historical replay no re-attestation; isolated new operation fingerprint; current Identity on both methods; no identity merge/effects.",
+  "fixtureCorrections": [
+    "Existing domain returns stale_entity; corrected new test expectation before first source checkpoint.",
+    "Readonly ref mutation in expanded test changed to Object.assign before second checkpoint; runtime unchanged."
+  ],
+  "limits": [
+    "Context/host principal proofing, config and time still trusted; use Identity facade exclusively where current resource checks required.",
+    "Sequential Identity and Knowledge observations not distributed permission fencing; consent/rights/Evidence remain separate.",
+    "PGlite serialized contenders do not establish independent PostgreSQL TCP contention, crash/failover or production qualification.",
+    "Pair facts are literal human judgments, not identity proof or inferred ID merging.",
+    "EvidenceLinks persistence, HTTP/UI/browser/AT/live qualification pending; no sends/publication/payment."
+  ]
+}

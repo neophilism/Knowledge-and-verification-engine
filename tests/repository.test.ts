@@ -220,3 +220,162 @@ test("captured inputs/config and corrupted stored sequence cannot bypass replay 
     code: "invalid_knowledge",
   });
 });
+
+async function pairFixture(t: test.TestContext) {
+  const f = await fixture(t);
+  const left = (await f.repo.append(c, 0, { ...q, id: "a" }, "a")).record;
+  const right = (await f.repo.append(c, 1, { ...q, id: "b" }, "b")).record;
+  const input = {
+    left,
+    right,
+    expectedRevision: 0,
+    decision: "unresolved" as const,
+    rationale: "Fictional identity remains unresolved",
+  };
+  return { ...f, input };
+}
+test("own DB pair history reverses explicit judgments without altering entity IDs or Knowledge storage", async (t) => {
+  const f = await pairFixture(t);
+  const before = await f.repo.load(c);
+  const first = await f.repo.recordEntityIdentity(c, 0, f.input, "pair");
+  const second = await f.repo.recordEntityIdentity(
+    c,
+    1,
+    { ...f.input, expectedRevision: 1, decision: "different" },
+    "reverse",
+  );
+  const view = await new KnowledgeRepository(
+    f.db,
+    f.policy,
+  ).loadEntityIdentities(c);
+  assert.equal(view.revision, 2);
+  assert.equal(view.knowledgeRevision, 2);
+  assert.equal(view.state.visibility, "private");
+  assert.deepEqual(view.state.records[1]!.supersedes, first.record);
+  assert.equal(second.record.revision, 2);
+  assert.deepEqual(await f.repo.load(c), before);
+  Object.assign(view.state.records[0]!, { rationale: "Detached" });
+  assert.notDeepEqual(await f.repo.loadEntityIdentities(c), view);
+});
+test("new pair writes load actual current entities; historical replay stays historical after entity changes", async (t) => {
+  const f = await pairFixture(t),
+    saved = await f.repo.recordEntityIdentity(c, 0, f.input, "pair");
+  const next = await f.repo.append(
+    c,
+    2,
+    { ...q, id: "a", expectedRevision: 1 },
+    "revise-a",
+  );
+  assert.deepEqual(
+    await f.repo.recordEntityIdentity(c, 0, f.input, "pair"),
+    saved,
+  );
+  await assert.rejects(
+    f.repo.recordEntityIdentity(
+      c,
+      1,
+      { ...f.input, expectedRevision: 1 },
+      "stale-pair",
+    ),
+    { code: "stale_entity" },
+  );
+  await f.repo.recordEntityIdentity(
+    c,
+    1,
+    { ...f.input, left: next.record, expectedRevision: 1 },
+    "new-edition",
+  );
+  const s = await f.repo.loadEntityIdentities(c);
+  assert.equal(s.knowledgeRevision, 3);
+  assert.equal(s.state.records[0]!.left.revision, 1);
+  assert.equal(s.state.records[1]!.left.revision, 2);
+});
+test("pair lost acknowledgement rollback and competing storage revisions preserve one lineage", async (t) => {
+  const f = await pairFixture(t);
+  f.hooks.lost = true;
+  await assert.rejects(f.repo.recordEntityIdentity(c, 0, f.input, "pair"));
+  assert.equal(
+    (await f.repo.recordEntityIdentity(c, 0, f.input, "pair")).storage.revision,
+    1,
+  );
+  f.hooks.rollback = true;
+  await assert.rejects(
+    f.repo.recordEntityIdentity(
+      c,
+      1,
+      { ...f.input, expectedRevision: 1 },
+      "second",
+    ),
+  );
+  f.hooks.rollback = false;
+  assert.equal((await f.repo.loadEntityIdentities(c)).revision, 1);
+  const outcomes = await Promise.allSettled(
+    ["second", "other"].map((id) =>
+      f.repo.recordEntityIdentity(
+        c,
+        1,
+        { ...f.input, expectedRevision: 1 },
+        id,
+      ),
+    ),
+  );
+  assert.equal(outcomes.filter((x) => x.status === "fulfilled").length, 1);
+  assert.equal((await f.repo.loadEntityIdentities(c)).revision, 2);
+});
+test("pair replay and reads enforce current host scope purpose full human kind and fixed policy", async (t) => {
+  const f = await pairFixture(t);
+  await f.repo.recordEntityIdentity(c, 0, f.input, "pair");
+  for (const bad of [
+    { ...c, projectId: "foreign" },
+    { ...c, purpose: "other" },
+    { ...c, actor: { ...c.actor, kind: "agent" as const } },
+    { ...c, actor: { ...c.actor, roles: ["viewer"] } },
+  ]) {
+    await assert.rejects(f.repo.recordEntityIdentity(bad, 0, f.input, "pair"));
+    await assert.rejects(f.repo.loadEntityIdentities(bad));
+  }
+  await assert.rejects(
+    f.repo.recordEntityIdentity(
+      c,
+      1,
+      { ...f.input, right: f.input.left, expectedRevision: 1 },
+      "self",
+    ),
+  );
+  assert.equal((await f.repo.loadEntityIdentities(c)).revision, 1);
+});
+
+test("pair input capture and shared command IDs cannot rewrite or impersonate a Knowledge append", async (t) => {
+  const f = await pairFixture(t),
+    input = structuredClone(f.input),
+    pending = f.repo.recordEntityIdentity(c, 0, input, "pair");
+  input.rationale = "Mutated caller text";
+  Object.assign(input.left,{id:"unknown"});
+  await pending;
+  assert.equal(
+    (await f.repo.loadEntityIdentities(c)).state.records[0]!.rationale,
+    f.input.rationale,
+  );
+  await assert.rejects(f.repo.recordEntityIdentity(c, 0, f.input, "a"));
+  assert.equal((await f.repo.loadEntityIdentities(c)).revision, 1);
+  assert.equal((await f.repo.load(c)).revision, 2);
+});
+test("corrupt stored pair sequence denies reads and cached acknowledgement without discarding history", async (t) => {
+  const f = await pairFixture(t),
+    ack = await f.repo.recordEntityIdentity(c, 0, f.input, "pair"),
+    snapshot = await f.repo.loadEntityIdentities(c);
+  await scoped(f.db, c, async (tx) => {
+    await tx.put(ack.storage.kind, ack.storage.id, 1, snapshot.state);
+  });
+  await assert.rejects(f.repo.loadEntityIdentities(c), {
+    code: "invalid_identity",
+  });
+  await assert.rejects(f.repo.recordEntityIdentity(c, 0, f.input, "pair"), {
+    code: "invalid_identity",
+  });
+  await scoped(f.db, c, async (tx) => {
+    const old = await tx.get(ack.storage.kind, ack.storage.id, 1);
+    assert(old);
+  });
+  assert.equal((await f.repo.load(c)).revision, 2);
+});

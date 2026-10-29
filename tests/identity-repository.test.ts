@@ -197,7 +197,7 @@ test("caller mutations and malformed host profiles cannot change captured comman
     context = structuredClone(c);
   const pending = f.facade.append(context, 0, command, "first");
   command.id = "mutated";
-  Object.assign(context.actor, {id:"second"});
+  Object.assign(context.actor, { id: "second" });
   assert.equal((await pending).record.id, "entity");
   for (const bad of [
     { ...c, purpose: "other" },
@@ -211,4 +211,37 @@ test("caller mutations and malformed host profiles cannot change captured comman
     code: "identity_unavailable",
   });
   assert.equal((await f.repo.load(c)).revision, 1);
+});
+
+test("pair methods use current Identity policy on every invocation including cached replay", async (t) => {
+  const f = await fixture(t);
+  await assert.rejects(f.facade.loadEntityIdentities(c), {
+    code: "identity_unavailable",
+  });
+  await f.membership.setResourcePolicy(c, 0, f.policy, "allow");
+  const left = (await f.facade.append(c, 0, { ...q, id: "a" }, "a")).record,
+    right = (await f.facade.append(c, 1, { ...q, id: "b" }, "b")).record;
+  const input = {
+    left,
+    right,
+    expectedRevision: 0,
+    decision: "same" as const,
+    rationale: "Explicit unverified fixture judgment",
+  };
+  const ack = await f.facade.recordEntityIdentity(c, 0, input, "pair");
+  assert.equal(ack.record.revision, 1);
+  assert.equal((await f.facade.loadEntityIdentities(c)).revision, 1);
+  await f.membership.setResourcePolicy(
+    c,
+    1,
+    { ...f.policy, actions: [] },
+    "deny",
+  );
+  await assert.rejects(f.facade.recordEntityIdentity(c, 0, input, "pair"), {
+    code: "identity_unavailable",
+  });
+  await assert.rejects(f.facade.loadEntityIdentities(c), {
+    code: "identity_unavailable",
+  });
+  assert.equal((await f.repo.loadEntityIdentities(c)).revision, 1);
 });
