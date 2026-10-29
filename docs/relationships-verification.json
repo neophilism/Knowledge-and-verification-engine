@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "status": "partial; final-head CI/merge pending",
+  "localTests": 39,
+  "newRelationshipGroups": 8,
+  "installedCompiledPublicExports": 39,
+  "indexJsByteMatchesBuild": true,
+  "typecheck": "passed",
+  "build": "passed",
+  "registry": "passed",
+  "sourceSha256": {
+    "src/index.ts": "06be73928414b13bf950e493c75954989b587c8ad268817b4534bc18dbf081e0",
+    "tests/relationships.test.ts": "2d638ad9fdf36694c7700de2737669d9d454004e873e46b397a4a4ed1597d589",
+    "src/contracts.ts": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5"
+  },
+  "initialCI": {
+    "source": "14fd48782e5ab6175d6f0d8aa7c0c79ff64cda02",
+    "run": 40826129344,
+    "job": 123289467168,
+    "tests": 37,
+    "conclusion": "success",
+    "logsInspected": true
+  },
+  "review": "No unresolved finding: exact profiles/scope/roles/revisions/endpoints/time/current subject admission/historical ref retention/caps/null tracks/private defaults. Actual pinned Evidence-link chain validates subject-linked claim only; does not promote relationship.",
+  "limitations": [
+    "Context/snapshots are trusted host input, not authentication/current policy or role truth",
+    "Additive schema1 profile; old pinned parsers reject unknown records; explicit consumer upgrade required",
+    "No SQL/durable audit/idempotency/network/browser/AT/live qualification",
+    "Current Identity/consent/rights/source verification/correction impact/UI acceptance pending; PAM foundation STOP"
+  ]
+}
