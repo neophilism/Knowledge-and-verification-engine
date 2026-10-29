@@ -29,3 +29,5 @@ Durable reversible entity-pair judgments and their opt-in Identity methods are d
 Partial own-DB evidence-link persistence and guarded Identity methods are documented in EVIDENCE_LINKS_REPOSITORY.md. Earlier link-persistence pending notes are historical; authenticated current source transport remains pending.
 
 Owning checked evidence-link review is documented in EVIDENCE_LINK_REVIEW.md. It loads current actual claim/link histories together before invoking the accepted pure review, exposes observed containing revisions and is guarded by the opt-in Identity facade. Evidence delivery remains trusted host input; this is no source authentication, verified finding or external action fence.
+
+The disposable owning-DB network fixture in POSTGRES_TESTS.md separately tests Knowledge append contention/lost acknowledgements, review ordering behind actual committed claim/link revisions and role/scope boundaries. Network acceptance requires its actual CI execution; it does not authenticate Context or supplied Evidence, or qualify production deployment.

@@ -1,0 +1,422 @@
+import test, { before, after } from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import {
+  postgresDatabase,
+  scoped,
+  verifyAudit,
+} from "@accountability/evidence-sql/database";
+import type { Database } from "@accountability/evidence-sql/database";
+import { createEvidenceState } from "@accountability/evidence";
+import {
+  KnowledgeRepository,
+  KNOWLEDGE_KIND,
+  KNOWLEDGE_KEY,
+} from "../src/repository.ts";
+import type { KnowledgeAppend } from "../src/repository.ts";
+import type { Context } from "../src/contracts.ts";
+// Intentionally refuses arbitrary or persistent database targets. CI owns this empty fixture only.
+const supplied = process.env.KVE_TEST_ADMIN_URL;
+assert.ok(
+  process.env.KVE_TEST_DISPOSABLE_POSTGRES === "1" && supplied,
+  "Explicit disposable PostgreSQL fixture configuration required",
+);
+const url = new URL(supplied);
+assert.ok(
+  ["postgres:", "postgresql:"].includes(url.protocol) &&
+    ["localhost", "127.0.0.1"].includes(url.hostname) &&
+    url.pathname === "/knowledge_ci" &&
+    url.username === "postgres" &&
+    !url.search &&
+    !url.hash,
+  "Only the designated empty loopback fixture is accepted",
+);
+const admin = postgresDatabase(url.toString());
+before(async () => {
+  await admin.transaction(async (q) => {
+    assert.equal(
+      (
+        await q.query<{ fresh: boolean }>(
+          "SELECT to_regclass('public.evidence_project') IS NULL AS fresh",
+        )
+      ).rows[0]!.fresh,
+      true,
+      "Fixture must be empty; never reset a database here",
+    );
+    const migration = await readFile(
+      new URL(
+        "../migrations/001_foundation.sql",
+        import.meta.resolve("@accountability/evidence-sql/database"),
+      ),
+      "utf8",
+    );
+    assert.equal(migration.match(/^BEGIN;$/gm)?.length, 1);
+    assert.equal(migration.match(/^COMMIT;$/gm)?.length, 1);
+    // The SDK transaction owns BEGIN/COMMIT; every actual migration statement is unchanged.
+    await q.query(migration.replace(/^BEGIN;$/m, "").replace(/^COMMIT;$/m, ""));
+    await q.query(
+      "CREATE ROLE knowledge_network_login LOGIN PASSWORD 'fixture-runtime-only' NOINHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION; GRANT evidence_runtime TO knowledge_network_login",
+    );
+  });
+});
+after(() => admin.close());
+
+function gate() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((r) => {
+    resolve = r;
+  });
+  return { resolve, promise };
+}
+async function fixture(t: test.TestContext, id: string) {
+  const context: Context = {
+    tenantId: "fiction",
+    projectId: id,
+    actor: { id: "owner", kind: "human", roles: ["owner"] },
+    purpose: "review",
+    requestId: "fixture",
+    now: "2026-01-01T00:00:00Z",
+  };
+  const policy = {
+    tenantId: context.tenantId,
+    projectId: id,
+    purpose: context.purpose,
+    humanIds: ["owner"],
+  };
+  function connect(label: string) {
+    const u = new URL(url);
+    u.username = "knowledge_network_login";
+    u.password = "fixture-runtime-only";
+    u.searchParams.set("application_name", id + "-" + label);
+    const raw = postgresDatabase(u.toString());
+    let closed = false;
+    const db: Database = {
+      transaction: raw.transaction.bind(raw),
+      close: async () => {
+        if (!closed) {
+          closed = true;
+          await raw.close();
+        }
+      },
+    };
+    t.after(() => db.close());
+    return db;
+  }
+  const a = connect("a"),
+    b = connect("b");
+  const sessions = await Promise.all(
+    [a, b].map((db) =>
+      db.transaction((q) =>
+        q.query<{ pid: number; login: string }>(
+          "SELECT pg_backend_pid() AS pid, session_user AS login",
+        ),
+      ),
+    ),
+  );
+  assert.notEqual(sessions[0]!.rows[0]!.pid, sessions[1]!.rows[0]!.pid);
+  assert.ok(
+    sessions.every((s) => s.rows[0]!.login === "knowledge_network_login"),
+  );
+  return {
+    context,
+    policy,
+    a,
+    b,
+    connect,
+    sa: new KnowledgeRepository(a, policy),
+    sb: new KnowledgeRepository(b, policy),
+    id,
+  };
+}
+const entity: KnowledgeAppend = {
+  id: "entity",
+  expectedRevision: 0,
+  value: {
+    type: "entity",
+    label: "Fictional entity",
+    category: "person",
+    description: "Unresolved fixture",
+  },
+};
+const claim: KnowledgeAppend = {
+  id: "claim",
+  expectedRevision: 0,
+  value: {
+    type: "claim",
+    text: "Fictional unverified account",
+    subjectRefs: [],
+    time: { earliest: null, latest: null },
+    accountType: "observation",
+    limitations: [],
+    assessment: null,
+    proceduralPosture: null,
+    editorialApproval: null,
+  },
+};
+async function observedWait(id: string) {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const r = await admin.transaction((q) =>
+      q.query<{ blocked: boolean }>(
+        "SELECT EXISTS(SELECT FROM pg_stat_activity WHERE application_name=$1 AND wait_event_type='Lock' AND cardinality(pg_blocking_pids(pid))>0) AS blocked",
+        [id + "-b"],
+      ),
+    );
+    if (r.rows[0]!.blocked) return;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  assert.fail(
+    "Independent observer must see actual PostgreSQL Lock and nonempty blocking PIDs before COMMIT",
+  );
+}
+function held(
+  db: Database,
+  locked: ReturnType<typeof gate>,
+  release: ReturnType<typeof gate>,
+): Database {
+  return {
+    close: async () => {},
+    transaction: (fn) =>
+      db.transaction(async (q) => {
+        const result = await fn(q);
+        locked.resolve();
+        await release.promise;
+        return result;
+      }),
+  };
+}
+test(
+  "independent append contenders preserve one owning storage edition and effect",
+  { timeout: 20000 },
+  async (t) => {
+    const f = await fixture(t, "knowledge-contenders");
+    const r = await Promise.allSettled([
+      f.sa.append(f.context, 0, entity, "a"),
+      f.sb.append(f.context, 0, { ...entity, id: "other" }, "b"),
+    ]);
+    assert.equal(r.filter((x) => x.status === "fulfilled").length, 1);
+    const loser = r.find(
+      (x) => x.status === "rejected",
+    ) as PromiseRejectedResult;
+    assert.equal(loser.reason.code, "revision_conflict");
+    assert.equal((await f.sb.load(f.context)).revision, 1);
+    await scoped(f.b, f.context, async (tx) => {
+      const audits = await tx.audits();
+      assert.ok(verifyAudit(audits));
+      assert.equal(
+        audits.filter((a) => a.type === "knowledge.appended").length,
+        1,
+      );
+      const first = await tx.claim("fixture");
+      assert.ok(first);
+      await tx.acknowledge(first);
+      assert.equal(await tx.claim("fixture"), null);
+    });
+  },
+);
+test(
+  "lost actual append COMMIT acknowledgement replays original refs through a fresh pool without another effect",
+  { timeout: 20000 },
+  async (t) => {
+    const f = await fixture(t, "knowledge-lost-ack");
+    let lost = false;
+    const db: Database = {
+      close: async () => {},
+      transaction: async (fn) => {
+        const result = await f.a.transaction(fn);
+        lost = true;
+        throw Error("fixture lost COMMIT acknowledgement");
+      },
+    };
+    await assert.rejects(
+      new KnowledgeRepository(db, f.policy).append(
+        f.context,
+        0,
+        entity,
+        "append",
+      ),
+      /lost COMMIT/,
+    );
+    assert.equal(lost, true);
+    await f.a.close();
+    const fresh = f.connect("fresh"),
+      repo = new KnowledgeRepository(fresh, f.policy);
+    const ack = await repo.append(f.context, 0, entity, "append");
+    assert.equal(ack.storage.revision, 1);
+    assert.equal((await repo.load(f.context)).state.records.length, 1);
+    await scoped(fresh, f.context, async (tx) => {
+      assert.ok(verifyAudit(await tx.audits()));
+      assert.equal(
+        (await tx.audits()).filter((a) => a.type === "knowledge.appended")
+          .length,
+        1,
+      );
+      const entry = await tx.claim("fixture");
+      assert.ok(entry);
+      await tx.acknowledge(entry);
+      assert.equal(await tx.claim("fixture"), null);
+    });
+  },
+);
+for (const mode of ["claim", "links"] as const)
+  test(
+    `owning review observes committed ${mode} change after independently observed lock wait`,
+    { timeout: 20000 },
+    async (t) => {
+      const f = await fixture(t, "knowledge-review-" + mode),
+        original = await f.sa.append(f.context, 0, claim, "claim"),
+        evidence = createEvidenceState(f.context);
+      const command = {
+        claim: original.record,
+        expectedRevision: 0,
+        links: [],
+      };
+      const links = await f.sa.recordEvidenceLinks(
+        f.context,
+        0,
+        evidence,
+        command,
+        "links",
+      );
+      const baseline = await f.sb.reviewEvidenceLinks(
+        f.context,
+        evidence,
+        links.record,
+      );
+      assert.equal(baseline.linksRevision, 1);
+      assert.equal(baseline.knowledgeRevision, 1);
+      assert.equal(baseline.review.revision.links.length, 0);
+      const locked = gate(),
+        release = gate(),
+        writer = new KnowledgeRepository(held(f.a, locked, release), f.policy);
+      const writing =
+        mode === "claim"
+          ? writer.append(
+              f.context,
+              1,
+              { ...claim, expectedRevision: 1 },
+              "revise-claim",
+            )
+          : writer.recordEvidenceLinks(
+              f.context,
+              1,
+              evidence,
+              { ...command, expectedRevision: 1 },
+              "revise-links",
+            );
+      let pending: Promise<unknown> | undefined;
+      try {
+        await Promise.race([locked.promise, writing]);
+        pending = f.sb.reviewEvidenceLinks(f.context, evidence, links.record);
+        const result = pending.then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+        await observedWait(f.id);
+        release.resolve();
+        await writing;
+        const outcome = await result;
+        assert.ok("error" in outcome);
+        const code = mode === "claim" ? "stale_claim" : "stale_links";
+        assert.equal((outcome.error as { code: string }).code, code);
+        await f.b.close();
+        const fresh = f.connect("fresh"),
+          repo = new KnowledgeRepository(fresh, f.policy);
+        await assert.rejects(
+          repo.reviewEvidenceLinks(f.context, evidence, links.record),
+          { code },
+        );
+        assert.equal(
+          (await repo.load(f.context)).revision,
+          mode === "claim" ? 2 : 1,
+        );
+        assert.equal(
+          (await repo.loadEvidenceLinks(f.context)).revision,
+          mode === "links" ? 2 : 1,
+        );
+        await scoped(fresh, f.context, async (tx) => {
+          const audits = await tx.audits();
+          assert.ok(verifyAudit(audits));
+          assert.equal(
+            audits.filter(
+              (a) => a.type === "knowledge.evidence-links.review_checked",
+            ).length,
+            1,
+            "Only baseline review committed; denied checked audits roll back",
+          );
+        });
+      } finally {
+        release.resolve();
+        await writing;
+        await pending?.catch(() => {});
+      }
+    },
+  );
+test(
+  "Knowledge network adapters reject admin and lowered-admin sessions and preserve actual RLS scope",
+  { timeout: 20000 },
+  async (t) => {
+    const f = await fixture(t, "knowledge-isolation");
+    await f.sa.append(f.context, 0, entity, "one");
+    const foreign = { ...f.context, projectId: "knowledge-other" },
+      otherPolicy = { ...f.policy, projectId: foreign.projectId };
+    const other = new KnowledgeRepository(f.b, otherPolicy);
+    await other.append(
+      foreign,
+      0,
+      {
+        ...entity,
+        value: {
+          ...entity.value,
+          label: "Other fictional entity",
+        } as typeof entity.value,
+      },
+      "one",
+    );
+    await assert.rejects(
+      new KnowledgeRepository(admin, f.policy).load(f.context),
+      { code: "unsafe_database_role" },
+    );
+    const lowered: Database = {
+      close: async () => {},
+      transaction: (fn) =>
+        admin.transaction(async (q) => {
+          await q.query("SET LOCAL ROLE evidence_runtime");
+          return fn(q);
+        }),
+    };
+    await assert.rejects(
+      new KnowledgeRepository(lowered, f.policy).load(f.context),
+      { code: "unsafe_database_role" },
+    );
+    for (const sql of [
+      "CREATE TABLE public.knowledge_forbidden(id integer)",
+      "SET ROLE postgres",
+    ])
+      await assert.rejects(
+        f.b.transaction((q) => q.query(sql)),
+        { code: "42501" },
+      );
+    assert.equal(
+      (
+        await f.b.transaction(async (q) => {
+          await q.query("SET LOCAL ROLE evidence_runtime");
+          return q.query("SELECT * FROM public.evidence_record");
+        })
+      ).rows.length,
+      0,
+    );
+    await scoped(f.a, f.context, async (tx) => {
+      const own = await tx.get(KNOWLEDGE_KIND, KNOWLEDGE_KEY);
+      assert.ok(own);
+      assert.ok(verifyAudit(await tx.audits()));
+    });
+    await scoped(f.b, { ...f.context, projectId: "absent" }, async (tx) =>
+      assert.equal(await tx.get(KNOWLEDGE_KIND, KNOWLEDGE_KEY), null),
+    );
+    assert.notDeepEqual(
+      (await f.sb.load(f.context)).state,
+      (await other.load(foreign)).state,
+    );
+  },
+);
