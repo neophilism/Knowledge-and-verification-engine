@@ -344,3 +344,38 @@ test("pair replay and reads enforce current host scope purpose full human kind a
   );
   assert.equal((await f.repo.loadEntityIdentities(c)).revision, 1);
 });
+
+test("pair input capture and shared command IDs cannot rewrite or impersonate a Knowledge append", async (t) => {
+  const f = await pairFixture(t),
+    input = structuredClone(f.input),
+    pending = f.repo.recordEntityIdentity(c, 0, input, "pair");
+  input.rationale = "Mutated caller text";
+  Object.assign(input.left,{id:"unknown"});
+  await pending;
+  assert.equal(
+    (await f.repo.loadEntityIdentities(c)).state.records[0]!.rationale,
+    f.input.rationale,
+  );
+  await assert.rejects(f.repo.recordEntityIdentity(c, 0, f.input, "a"));
+  assert.equal((await f.repo.loadEntityIdentities(c)).revision, 1);
+  assert.equal((await f.repo.load(c)).revision, 2);
+});
+test("corrupt stored pair sequence denies reads and cached acknowledgement without discarding history", async (t) => {
+  const f = await pairFixture(t),
+    ack = await f.repo.recordEntityIdentity(c, 0, f.input, "pair"),
+    snapshot = await f.repo.loadEntityIdentities(c);
+  await scoped(f.db, c, async (tx) => {
+    await tx.put(ack.storage.kind, ack.storage.id, 1, snapshot.state);
+  });
+  await assert.rejects(f.repo.loadEntityIdentities(c), {
+    code: "invalid_identity",
+  });
+  await assert.rejects(f.repo.recordEntityIdentity(c, 0, f.input, "pair"), {
+    code: "invalid_identity",
+  });
+  await scoped(f.db, c, async (tx) => {
+    const old = await tx.get(ack.storage.kind, ack.storage.id, 1);
+    assert(old);
+  });
+  assert.equal((await f.repo.load(c)).revision, 2);
+});
