@@ -219,3 +219,107 @@ test("bounded text and append-only capacity reject without mutating input histor
     }),
   );
 });
+
+test("valid history at2048 revisions cannot silently evict a record to admit another", () => {
+  const first = reviseKnowledge(c, createKnowledgeState(c), {
+    id: "a",
+    expectedRevision: 0,
+    value: entity,
+  }).records[0]!;
+  const s = {
+    ...createKnowledgeState(c),
+    records: Array.from({ length: 2048 }, (_, i) => ({
+      ...structuredClone(first),
+      ref: { ...first.ref, id: "entity-" + i },
+    })),
+  };
+  assertKnowledgeState(s);
+  assert.throws(
+    () =>
+      reviseKnowledge(c, s, { id: "new", expectedRevision: 0, value: entity }),
+    { code: "invalid_knowledge" },
+  );
+  assert.equal(s.records.length, 2048);
+});
+test("aggregate UTF8 budget is independent of per-field code-unit bounds", () => {
+  const first = reviseKnowledge(c, createKnowledgeState(c), {
+    id: "a",
+    expectedRevision: 0,
+    value: { ...entity, description: "𐀀".repeat(2000) },
+  }).records[0]!;
+  const s = {
+    ...createKnowledgeState(c),
+    records: Array.from({ length: 300 }, (_, i) => ({
+      ...structuredClone(first),
+      ref: { ...first.ref, id: "entity-" + i },
+    })),
+  };
+  assert.throws(() => assertKnowledgeState(s), { code: "knowledge_full" });
+});
+test("historical exact links survive subject revision while new links must be deliberately current", () => {
+  let s = reviseKnowledge(c, createKnowledgeState(c), {
+    id: "a",
+    expectedRevision: 0,
+    value: entity,
+  });
+  const ref = s.records[0]!.ref;
+  s = reviseKnowledge(c, s, {
+    id: "c",
+    expectedRevision: 0,
+    value: { ...claim, subjectRefs: [ref] },
+  });
+  s = reviseKnowledge(c, s, {
+    id: "a",
+    expectedRevision: 1,
+    value: { ...entity, label: "Later alias" },
+  });
+  assertKnowledgeState(s);
+  assert.deepEqual(
+    (s.records[1]!.value as { subjectRefs: unknown }).subjectRefs,
+    [ref],
+  );
+  assert.throws(
+    () =>
+      reviseKnowledge(c, s, {
+        id: "new",
+        expectedRevision: 0,
+        value: { ...claim, subjectRefs: [ref, ref] },
+      }),
+    { code: "invalid_reference" },
+  );
+});
+test("extra reference fields, injected provenance/visibility and unsafe expected revisions reject", () => {
+  const s = reviseKnowledge(c, createKnowledgeState(c), {
+    id: "a",
+    expectedRevision: 0,
+    value: entity,
+  });
+  assert.throws(() =>
+    reviseKnowledge(c, s, {
+      id: "c",
+      expectedRevision: 0,
+      value: {
+        ...claim,
+        subjectRefs: [
+          {
+            ...s.records[0]!.ref,
+            grant: "forged",
+          } as (typeof s.records)[0]["ref"],
+        ],
+      },
+    }),
+  );
+  for (const n of [-1, 1.5, Infinity, Number.MAX_SAFE_INTEGER])
+    assert.throws(
+      () =>
+        reviseKnowledge(c, s, { id: "a", expectedRevision: n, value: entity }),
+      { code: "invalid_revision" },
+    );
+  assert.throws(() =>
+    reviseKnowledge(c, s, {
+      id: "c",
+      expectedRevision: 0,
+      value: { ...claim, visibility: "public" } as unknown as KnowledgeValue,
+    }),
+  );
+});

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "pr": 1,
+  "implementation": "partial",
+  "local": {
+    "tests": 12,
+    "typecheck": true,
+    "build": true,
+    "registry": true,
+    "cleanNormalInstall": true
+  },
+  "sourceFiles": {
+    "src/index.ts": "45cc6fe22c7910abeb66520cda986d68f832f112514ba927e2cf7564d29fbd11",
+    "src/contracts.ts": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5",
+    "tests/knowledge.test.ts": "ecdaf6070a117d5cdee628d2bfe62c7356f0008cd01c112275bc9914577c5165",
+    "package.json": "30499e8566de51501dfcb8f1b5a35e854a3e682d26aa21d2c33c9621beda923d",
+    "package-lock.json": "ff0133c26d845783d996582c84eef3b8127c7540c5f83292ca26ee4de3d19a30"
+  },
+  "approvedDesignFiles": {
+    "docs/approved-design/engine_catalog.json": "7e5b265cdb81c2255e01955db08ef4f8ea6b5e480c0866aacaa44cccf973eea8",
+    "docs/approved-design/development_backlog.json": "eee514fe5189b6e3133f8c6781b6eff4546dfea4314d334ac21f21ad3cfdae74",
+    "docs/approved-design/domain_contracts.json": "98ccb94433b5878de815d0bf56a57f48bdd0e2e9eadbcd9efbae919493b2fb8f",
+    "docs/approved-design/requirements.json": "4091ff2747785906219484b359b5b1720cce97e1cad6f06590b84bd99ab49a2e"
+  },
+  "initialCi": {
+    "run": 40797317206,
+    "job": 123196826801,
+    "conclusion": "failure",
+    "phase": "npm ci",
+    "testsRun": false,
+    "reason": "symlink-generated workspace dependency paths; clean lock regenerated"
+  },
+  "installed": "pending",
+  "finalHeadCi": "required",
+  "limits": [
+    "Pure memory library, not SQL/durable audit/crash/network proof",
+    "Trusted Context roles/purpose/time not authentication or permission fence",
+    "No evidence selectors/family/assessment/authenticity/legal/editorial findings",
+    "No UI/browser/AT/current Identity/source/consent/live qualification",
+    "All records private; no provider calls/sends/publication/payments"
+  ]
+}
