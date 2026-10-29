@@ -605,30 +605,195 @@ test("link source and command capture precede asynchronous SQL and shared comman
   assert.equal(selector.kind, "text");
   if (selector.kind !== "text") assert.fail("Expected captured text selector");
   assert.equal(selector.quote, "😀");
-  await assert.rejects(f.repo.recordEvidenceLinks(c, 0, f.evidence, f.command, "claim"));
+  await assert.rejects(
+    f.repo.recordEvidenceLinks(c, 0, f.evidence, f.command, "claim"),
+  );
   assert.equal((await f.repo.loadEvidenceLinks(c)).revision, 1);
   assert.equal((await f.repo.load(c)).revision, 1);
 });
 
 test("foreign projects cannot see link histories and corrupt stored sequence denies cached replay while retaining old editions", async (t) => {
   const f = await linkFixture(t),
-    ack = await f.repo.recordEvidenceLinks(c, 0, f.evidence, f.command, "links"),
+    ack = await f.repo.recordEvidenceLinks(
+      c,
+      0,
+      f.evidence,
+      f.command,
+      "links",
+    ),
     read = await f.repo.loadEvidenceLinks(c),
     foreign = { ...c, projectId: "other-project" },
-    other = new KnowledgeRepository(f.db, { ...f.policy, projectId: foreign.projectId });
+    other = new KnowledgeRepository(f.db, {
+      ...f.policy,
+      projectId: foreign.projectId,
+    });
   assert.equal((await other.loadEvidenceLinks(foreign)).revision, 0);
   assert.equal((await other.loadEvidenceLinks(foreign)).knowledgeRevision, 0);
-  await assert.rejects(other.recordEvidenceLinks(foreign, 0, f.evidence, f.command, "links"));
+  await assert.rejects(
+    other.recordEvidenceLinks(foreign, 0, f.evidence, f.command, "links"),
+  );
   await scoped(f.db, c, async (tx) => {
     // Fixture-only inconsistent sequence; public APIs never overwrite/import snapshots.
     await tx.put(ack.storage.kind, ack.storage.id, 1, read.state);
   });
   await assert.rejects(f.repo.loadEvidenceLinks(c), { code: "invalid_links" });
-  await assert.rejects(f.repo.recordEvidenceLinks(c, 0, f.evidence, f.command, "links"), { code: "invalid_links" });
+  await assert.rejects(
+    f.repo.recordEvidenceLinks(c, 0, f.evidence, f.command, "links"),
+    { code: "invalid_links" },
+  );
   await scoped(f.db, c, async (tx) => {
     const old = await tx.get(ack.storage.kind, ack.storage.id, 1);
     assert.deepEqual(old?.value, read.state);
     assert(verifyAudit(await tx.audits()));
   });
   assert.equal((await f.repo.load(c)).revision, 1);
+});
+
+test("owning review loads exact current claim and link histories without writing a decision or revising records", async (t) => {
+  const f = await linkFixture(t),
+    ack = await f.repo.recordEvidenceLinks(
+      c,
+      0,
+      f.evidence,
+      f.command,
+      "links",
+    );
+  const before = await f.repo.loadEvidenceLinks(c),
+    knowledge = await f.repo.load(c);
+  const view = await f.repo.reviewEvidenceLinks(c, f.evidence, ack.record);
+  assert.equal(view.knowledgeRevision, knowledge.revision);
+  assert.equal(view.linksRevision, 1);
+  assert.deepEqual(view.review.revision, before.state.records[0]);
+  assert.ok(view.review.sources.supports);
+  Object.assign(view.review.revision, { purpose: "mutated" });
+  assert.deepEqual(await f.repo.loadEvidenceLinks(c), before);
+  assert.deepEqual(await f.repo.load(c), knowledge);
+  await scoped(f.db, c, async (tx) => {
+    const audits = await tx.audits();
+    assert.ok(verifyAudit(audits));
+    assert.equal(
+      audits.filter((a) => a.type === "knowledge.evidence-links.review_checked")
+        .length,
+      1,
+    );
+  });
+});
+test("owning review rejects superseded links and claims and altered source snapshots without rewriting history", async (t) => {
+  const f = await linkFixture(t),
+    ack = await f.repo.recordEvidenceLinks(
+      c,
+      0,
+      f.evidence,
+      f.command,
+      "links",
+    );
+  const bad = structuredClone(f.evidence);
+  Object.assign(bad.representations[0]!, { text: "changed" });
+  await assert.rejects(f.repo.reviewEvidenceLinks(c, bad, ack.record));
+  const next = await f.repo.recordEvidenceLinks(
+    c,
+    1,
+    f.evidence,
+    { ...f.command, expectedRevision: 1 },
+    "next",
+  );
+  await assert.rejects(f.repo.reviewEvidenceLinks(c, f.evidence, ack.record), {
+    code: "stale_links",
+  });
+  await f.repo.append(
+    c,
+    1,
+    { ...f.claimCommand, expectedRevision: 1 },
+    "claim-next",
+  );
+  await assert.rejects(f.repo.reviewEvidenceLinks(c, f.evidence, next.record), {
+    code: "stale_claim",
+  });
+  assert.equal((await f.repo.loadEvidenceLinks(c)).revision, 2);
+});
+test("review denial and lost read COMMIT acknowledgement never create review authority or alter links", async (t) => {
+  const f = await linkFixture(t),
+    ack = await f.repo.recordEvidenceLinks(
+      c,
+      0,
+      f.evidence,
+      f.command,
+      "links",
+    );
+  const before = await f.repo.loadEvidenceLinks(c);
+  for (const bad of [
+    { ...c, purpose: "other" },
+    { ...c, actor: { ...c.actor, roles: ["viewer"] } },
+    { ...c, projectId: "other" },
+  ])
+    await assert.rejects(
+      f.repo.reviewEvidenceLinks(bad, f.evidence, ack.record),
+    );
+  f.hooks.lost = true;
+  await assert.rejects(
+    f.repo.reviewEvidenceLinks(c, f.evidence, ack.record),
+    /lost COMMIT/,
+  );
+  assert.equal(
+    (
+      await new KnowledgeRepository(f.db, f.policy).reviewEvidenceLinks(
+        c,
+        f.evidence,
+        ack.record,
+      )
+    ).linksRevision,
+    1,
+  );
+  assert.deepEqual(await f.repo.loadEvidenceLinks(c), before);
+});
+
+test("owning review captures source/context/selection before waiting and acquires its checked lock before history reads", async (t) => {
+  const f = await linkFixture(t),
+    ack = await f.repo.recordEvidenceLinks(
+      c,
+      0,
+      f.evidence,
+      f.command,
+      "links",
+    );
+  let release!: () => void;
+  const gate = new Promise<void>((r) => {
+      release = r;
+    }),
+    trace: string[] = [];
+  const db: Database = {
+    close: async () => {},
+    transaction: async (fn) => {
+      await gate;
+      return f.db.transaction((q) =>
+        fn({
+          query: async <T>(sql: string, values?: unknown[]) => {
+            trace.push(sql);
+            return q.query<T>(sql, values);
+          },
+        }),
+      );
+    },
+  };
+  const store = new KnowledgeRepository(db, f.policy),
+    source = structuredClone(f.evidence),
+    context = structuredClone(c),
+    selected = structuredClone(ack.record);
+  const pending = store.reviewEvidenceLinks(context, source, selected);
+  Object.assign(context, { purpose: "other" });
+  Object.assign(source.representations[0]!, { text: "changed" });
+  Object.assign(selected, { revision: 99 });
+  release();
+  const view = await pending;
+  assert.equal(view.review.revision.ref.revision, 1);
+  const firstRead = trace.findIndex((s) =>
+    s.includes("FROM public.evidence_record"),
+  );
+  const checkedAudit = trace.findIndex((s) =>
+    s.includes("INSERT INTO public.evidence_audit"),
+  );
+  assert.ok(
+    checkedAudit >= 0 && firstRead > checkedAudit,
+    "Owning checked audit/lock must precede both history reads",
+  );
 });

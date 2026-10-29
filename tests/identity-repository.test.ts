@@ -286,6 +286,13 @@ test("link methods require fresh Identity policy including replay; empty set nev
   const view = await f.facade.loadEvidenceLinks(c);
   assert.equal(view.revision, 1);
   assert.equal(view.state.records[0]!.links.length, 0);
+  const reviewed = await f.facade.reviewEvidenceLinks(
+    c,
+    createEvidenceState(c),
+    view.state.records[0]!.ref,
+  );
+  assert.equal(reviewed.linksRevision, 1);
+  assert.equal(reviewed.review.revision.links.length, 0);
   await f.membership.setResourcePolicy(
     c,
     1,
@@ -305,4 +312,12 @@ test("link methods require fresh Identity policy including replay; empty set nev
   await assert.rejects(f.facade.loadEvidenceLinks(c), {
     code: "identity_unavailable",
   });
+  await assert.rejects(
+    f.facade.reviewEvidenceLinks(
+      c,
+      createEvidenceState(c),
+      view.state.records[0]!.ref,
+    ),
+    { code: "identity_unavailable" },
+  );
 });
